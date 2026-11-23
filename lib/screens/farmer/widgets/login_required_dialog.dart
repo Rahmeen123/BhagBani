@@ -8,16 +8,25 @@ class LoginRequiredDialog extends StatelessWidget {
   const LoginRequiredDialog({
     super.key,
     required this.actionName,
+    this.destination,
   });
 
   final String actionName;
+  final WidgetBuilder? destination;
 
-  static Future<bool> show(BuildContext context, {required String actionName}) async {
+  static Future<bool> show(
+    BuildContext context, {
+    required String actionName,
+    WidgetBuilder? destination,
+  }) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => LoginRequiredDialog(actionName: actionName),
+      builder: (_) => LoginRequiredDialog(
+        actionName: actionName,
+        destination: destination,
+      ),
     );
     return result ?? false;
   }
@@ -88,7 +97,9 @@ class LoginRequiredDialog extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+                MaterialPageRoute<void>(
+                  builder: (_) => LoginScreen(onAuthenticated: destination),
+                ),
               );
             },
           ),
@@ -101,7 +112,9 @@ class LoginRequiredDialog extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
+                MaterialPageRoute<void>(
+                  builder: (_) => SignupScreen(onAuthenticated: destination),
+                ),
               );
             },
           ),

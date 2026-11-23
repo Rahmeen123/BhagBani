@@ -2,17 +2,27 @@ import 'package:flutter/material.dart';
 import '../farmer/widgets/community_login_gate.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/tree_recommendation/screens/tree_intro_screen.dart';
+import '../../navigation/protected_feature_navigation.dart';
 import '../../providers/auth_scope.dart';
 import '../../widgets/feature_tile.dart';
 import '../../widgets/section_heading.dart';
+import '../auth/login_screen.dart';
 import '../coming_soon_screen.dart';
 import '../farmer/become_farmer_screen.dart';
 import '../farmer/farmer_listing_screen.dart';
+import '../farmer/hire_farmer_landing_screen.dart';
 import '../farmer/widgets/login_required_dialog.dart';
 import '../help/help_guide_screen.dart';
 import '../land/offer_land_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../nursery/browse_plants_screen.dart';
+import '../nursery/my_orders_screen.dart';
+import '../nursery/nearby_nurseries_screen.dart';
+import '../nursery/plant_details_screen.dart';
+import '../nursery/wishlist_screen.dart';
 import '../profile/profile_screen.dart';
+import '../../models/plant.dart';
+import '../../services/nursery_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -282,14 +292,21 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.agriculture_rounded,
                 tint: AppColors.farmTint,
                 iconColor: AppColors.farmAccent,
-                onTap: () => _openComingSoon(context, 'Crop Recommendation'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const ComingSoonScreen(feature: 'Crop Recommendation'),
+                ),
               ),
               _QuickActionTile(
                 label: 'Plants',
                 icon: Icons.local_florist_rounded,
                 tint: AppColors.gardenTint,
                 iconColor: AppColors.gardenAccent,
-                onTap: () => _openComingSoon(context, 'Plant Recommendation'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) =>
+                      const ComingSoonScreen(feature: 'Plant Recommendation'),
+                ),
               ),
               _QuickActionTile(
                 label: 'Trees',
@@ -315,7 +332,10 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.farmTint,
                 iconColor: AppColors.farmAccent,
                 showDivider: true,
-                onTap: () => _openComingSoon(context, 'Crop Recommendation'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const ComingSoonScreen(feature: 'Crop Recommendation'),
+                ),
               ),
               FeatureRowTile(
                 title: 'Tree Recommendation',
@@ -332,7 +352,10 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.calendar_month_rounded,
                 tint: AppColors.farmTint,
                 iconColor: AppColors.farmAccent,
-                onTap: () => _openComingSoon(context, 'Plantation Planning'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const ComingSoonScreen(feature: 'Plantation Planning'),
+                ),
               ),
             ],
           ),
@@ -351,7 +374,11 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.gardenTint,
                 iconColor: AppColors.gardenAccent,
                 showDivider: true,
-                onTap: () => _openComingSoon(context, 'Plant Recommendation'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) =>
+                      const ComingSoonScreen(feature: 'Plant Recommendation'),
+                ),
               ),
               FeatureRowTile(
                 title: 'Plant Health Analysis',
@@ -359,7 +386,11 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.health_and_safety_rounded,
                 tint: AppColors.gardenTint,
                 iconColor: AppColors.gardenAccent,
-                onTap: () => _openComingSoon(context, 'Plant Health Analysis'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) =>
+                      const ComingSoonScreen(feature: 'Plant Health Analysis'),
+                ),
               ),
             ],
           ),
@@ -378,7 +409,12 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.nurseryTint,
                 iconColor: AppColors.nurseryAccent,
                 showDivider: true,
-                onTap: () => _openComingSoon(context, 'Browse Plants'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const BrowsePlantsScreen(),
+                  ),
+                ),
               ),
               FeatureRowTile(
                 title: 'Nearby Nurseries',
@@ -387,7 +423,12 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.nurseryTint,
                 iconColor: AppColors.nurseryAccent,
                 showDivider: true,
-                onTap: () => _openComingSoon(context, 'Nearby Nurseries'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NearbyNurseriesScreen(),
+                  ),
+                ),
               ),
               FeatureRowTile(
                 title: 'Wishlist',
@@ -395,7 +436,10 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.favorite_border_rounded,
                 tint: AppColors.nurseryTint,
                 iconColor: AppColors.nurseryAccent,
-                onTap: () => _openComingSoon(context, 'Wishlist'),
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const WishlistScreen(),
+                ),
               ),
             ],
           ),
@@ -417,7 +461,7 @@ class _HomeTab extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (_) => const FarmerListingScreen(),
+                    builder: (_) => const HireFarmerLandingScreen(),
                   ),
                 ),
               ),
@@ -428,21 +472,10 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.soft,
                 iconColor: AppColors.primary,
                 showDivider: true,
-                onTap: () async {
-                  if (isGuest) {
-                    await LoginRequiredDialog.show(
-                      context,
-                      actionName: 'register as a farmer',
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => const BecomeFarmerScreen(),
-                      ),
-                    );
-                  }
-                },
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const BecomeFarmerScreen(),
+                ),
               ),
               FeatureRowTile(
                 title: 'Offer Land',
@@ -483,6 +516,14 @@ class _HomeTab extends StatelessWidget {
       MaterialPageRoute<void>(
         builder: (_) => ComingSoonScreen(feature: feature),
       ),
+    );
+  }
+
+  void _openProtected(BuildContext context, WidgetBuilder destination) {
+    ProtectedFeatureNavigation.open(
+      context,
+      destination: destination,
+      loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
     );
   }
 
@@ -585,47 +626,398 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-class _PlantsExploreTab extends StatelessWidget {
+class _PlantsExploreTab extends StatefulWidget {
   const _PlantsExploreTab();
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.cream,
-        appBar: AppBar(title: const Text('Plants & Nurseries')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  State<_PlantsExploreTab> createState() => _PlantsExploreTabState();
+}
+
+class _PlantsExploreTabState extends State<_PlantsExploreTab> {
+  final _service = NurseryService();
+  List<Plant> _featured = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeatured();
+  }
+
+  Future<void> _loadFeatured() async {
+    final plants = await _service.getPlants();
+    if (mounted) {
+      setState(() {
+        _featured = plants.take(6).toList();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            // Header
+            const Text(
+              'Plants & Nurseries',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.dark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Buy plants, find nurseries, grow your garden',
+              style: TextStyle(fontSize: 13.5, color: AppColors.muted),
+            ),
+            const SizedBox(height: 20),
+
+            // Quick nav row
+            Row(
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: AppColors.gardenTint,
-                    borderRadius: BorderRadius.circular(24),
+                _quickNav(
+                  context,
+                  icon: Icons.search_rounded,
+                  label: 'Browse All',
+                  tint: AppColors.nurseryTint,
+                  color: AppColors.nurseryAccent,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const BrowsePlantsScreen(),
+                    ),
                   ),
-                  child: const Icon(Icons.local_florist_rounded,
-                      color: AppColors.gardenAccent, size: 40),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(width: 10),
+                _quickNav(
+                  context,
+                  icon: Icons.storefront_rounded,
+                  label: 'Nurseries',
+                  tint: AppColors.gardenTint,
+                  color: AppColors.gardenAccent,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NearbyNurseriesScreen(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _quickNav(
+                  context,
+                  icon: Icons.favorite_rounded,
+                  label: 'Wishlist',
+                  tint: const Color(0xFFFFEBEE),
+                  color: const Color(0xFFE53935),
+                  onTap: () => ProtectedFeatureNavigation.open(
+                    context,
+                    destination: (_) => const WishlistScreen(),
+                    loginScreenBuilder: (dest) =>
+                        LoginScreen(onAuthenticated: dest),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _quickNav(
+                  context,
+                  icon: Icons.receipt_long_rounded,
+                  label: 'My Orders',
+                  tint: AppColors.farmTint,
+                  color: AppColors.farmAccent,
+                  onTap: () => ProtectedFeatureNavigation.open(
+                    context,
+                    destination: (_) => const MyOrdersScreen(),
+                    loginScreenBuilder: (dest) =>
+                        LoginScreen(onAuthenticated: dest),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Featured plants
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 const Text(
-                  'Plant Catalog & Care',
+                  'Featured Plants',
                   style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.dark),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.dark,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Browse hundreds of plants, seeds and care guides from certified nurseries.',
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const BrowsePlantsScreen(),
+                    ),
+                  ),
+                  child: const Text(
+                    'See all →',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.nurseryAccent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (_featured.isEmpty)
+              const Center(
+                child: Text(
+                  'No plants available yet.',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _featured.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.75,
+                ),
+                itemBuilder: (context, i) {
+                  final plant = _featured[i];
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => PlantDetailsScreen(plant: plant),
+                      ),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.borderLight),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Plant icon hero
+                          Container(
+                            height: 110,
+                            decoration: BoxDecoration(
+                              color: AppColors.nurseryTint,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _categoryEmoji(plant.category),
+                                style: const TextStyle(fontSize: 44),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  plant.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.dark,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  plant.category,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.muted,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Rs ${plant.price.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.nurseryAccent,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.soft,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${plant.quantity} left',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+            const SizedBox(height: 24),
+
+            // Categories section
+            const Text(
+              'Shop by Category',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.dark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _categoryChip(context, 'Indoor', '🪴'),
+                _categoryChip(context, 'Outdoor', '🌳'),
+                _categoryChip(context, 'Fruit Trees', '🍊'),
+                _categoryChip(context, 'Flowering', '🌸'),
+                _categoryChip(context, 'Succulents', '🌵'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickNav(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color tint,
+    required Color color,
+    required VoidCallback onTap,
+  }) =>
+      Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: tint,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(height: 4),
+                Text(
+                  label,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.muted, height: 1.45),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
                 ),
               ],
             ),
           ),
         ),
       );
+
+  Widget _categoryChip(BuildContext context, String category, String emoji) =>
+      GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => BrowsePlantsScreen(initialCategory: category),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Text(
+                category,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.dark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  String _categoryEmoji(String category) {
+    switch (category.toLowerCase()) {
+      case 'indoor':
+        return '🪴';
+      case 'outdoor':
+        return '🌳';
+      case 'fruit trees':
+        return '🍊';
+      case 'flowering':
+        return '🌸';
+      case 'succulents':
+        return '🌵';
+      default:
+        return '🌿';
+    }
+  }
 }
 
 class _CommunityExploreTab extends StatelessWidget {
@@ -701,7 +1093,7 @@ class _CommunityExploreTab extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (_) => const FarmerListingScreen(),
+                builder: (_) => const HireFarmerLandingScreen(),
               ),
             ),
           ),
@@ -718,21 +1110,11 @@ class _CommunityExploreTab extends StatelessWidget {
             tint: AppColors.soft,
             accent: AppColors.primary,
             buttonText: 'Register as Farmer',
-            onTap: () async {
-              if (isGuest) {
-                await LoginRequiredDialog.show(
-                  context,
-                  actionName: 'register as a farmer',
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const BecomeFarmerScreen(),
-                  ),
-                );
-              }
-            },
+            onTap: () => ProtectedFeatureNavigation.open(
+              context,
+              destination: (_) => const BecomeFarmerScreen(),
+              loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+            ),
           ),
           const SizedBox(height: 14),
 

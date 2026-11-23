@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/farmer.dart';
+import '../../navigation/protected_feature_navigation.dart';
 import '../../providers/auth_scope.dart';
 import '../../widgets/primary_button.dart';
+import '../auth/login_screen.dart';
 import 'hiring_request_screen.dart';
-import 'widgets/login_required_dialog.dart';
 
 class FarmerProfileScreen extends StatelessWidget {
   const FarmerProfileScreen({super.key, required this.farmer});
@@ -258,21 +259,12 @@ class FarmerProfileScreen extends StatelessWidget {
         child: PrimaryButton(
           label: 'Hire Farmer',
           icon: Icons.send_rounded,
-          onPressed: () async {
-            if (isGuest) {
-              await LoginRequiredDialog.show(
-                context,
-                actionName: 'send a hiring request to ${farmer.name}',
-              );
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => HiringRequestScreen(farmer: farmer),
-                ),
-              );
-            }
-          },
+          onPressed: () => ProtectedFeatureNavigation.open(
+            context,
+            destination: (_) => HiringRequestScreen(farmer: farmer),
+            loginScreenBuilder: (destination) =>
+                LoginScreen(onAuthenticated: destination),
+          ),
         ),
       ),
     );

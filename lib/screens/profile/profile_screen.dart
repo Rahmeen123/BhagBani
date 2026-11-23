@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../navigation/protected_feature_navigation.dart';
 import '../../providers/auth_scope.dart';
 import '../../widgets/primary_button.dart';
 import '../auth/login_screen.dart';
 import '../auth/signup_screen.dart';
 import '../help/help_guide_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../nursery/my_orders_screen.dart';
+import '../nursery/nursery_gate_screen.dart';
+import '../nursery/wishlist_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -211,6 +215,45 @@ class ProfileScreen extends StatelessWidget {
                   tint: AppColors.communityTint,
                   accent: AppColors.communityAccent,
                   showDivider: true,
+                ),
+                _detailTile(
+                  icon: Icons.storefront_rounded,
+                  label: 'My Nursery',
+                  value: 'Manage your registered nursery',
+                  tint: AppColors.nurseryTint,
+                  accent: AppColors.nurseryAccent,
+                  showDivider: true,
+                  onTap: () => ProtectedFeatureNavigation.open(
+                    context,
+                    destination: (_) => const NurseryGateScreen(),
+                    loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+                  ),
+                ),
+                _detailTile(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'My Plant Orders',
+                  value: 'Track your plant pickup orders',
+                  tint: AppColors.gardenTint,
+                  accent: AppColors.gardenAccent,
+                  showDivider: true,
+                  onTap: () => ProtectedFeatureNavigation.open(
+                    context,
+                    destination: (_) => const MyOrdersScreen(),
+                    loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+                  ),
+                ),
+                _detailTile(
+                  icon: Icons.favorite_rounded,
+                  label: 'My Wishlist',
+                  value: 'Plants you saved for later',
+                  tint: const Color(0xFFFFEBEE),
+                  accent: const Color(0xFFE53935),
+                  showDivider: true,
+                  onTap: () => ProtectedFeatureNavigation.open(
+                    context,
+                    destination: (_) => const WishlistScreen(),
+                    loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+                  ),
                 ),
                 _detailTile(
                   icon: Icons.menu_book_outlined,
