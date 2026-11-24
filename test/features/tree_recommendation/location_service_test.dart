@@ -70,6 +70,42 @@ void main() {
     expect(address, 'Johar Town, Lahore, Punjab, Pakistan');
   });
 
+  test('reverse geocoding includes street and block-level details', () async {
+    final service = LocationService(
+      client: MockClient((request) async {
+        expect(request.url.queryParameters['zoom'], '18');
+        return http.Response(
+          jsonEncode({
+            'display_name':
+                '12 Main Boulevard, Architect Society, XYZ Block, Lahore',
+            'address': {
+              'house_number': '12',
+              'road': 'Main Boulevard',
+              'neighbourhood': 'Architect Society',
+              'city_block': 'XYZ Block',
+              'city': 'Lahore',
+              'county': 'Lahore District',
+              'state': 'Punjab',
+              'country': 'Pakistan',
+            },
+          }),
+          200,
+        );
+      }),
+    );
+    addTearDown(service.close);
+
+    final address = await service.reverseGeocode(
+      latitude: 31.5204,
+      longitude: 74.3587,
+    );
+
+    expect(
+      address,
+      '12 Main Boulevard, Architect Society, XYZ Block, Lahore, Punjab, Pakistan',
+    );
+  });
+
   test('reverse geocoding reports an unavailable address', () async {
     final service = LocationService(
       client: MockClient((_) async => http.Response('{}', 200)),

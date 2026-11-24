@@ -33,6 +33,9 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
   List<Plant> _plants = [];
   Set<String> _wishlistIds = {};
   bool _isLoading = true;
+  bool _didLoadInitialData = false;
+  Object? _loadError;
+  int _loadGeneration = 0;
   String _selectedCategory = 'All';
 
   final List<String> _categories = [
@@ -51,8 +54,15 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
         _categories.contains(widget.initialCategory)) {
       _selectedCategory = widget.initialCategory!;
     }
-    _loadData();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadInitialData) return;
+    _didLoadInitialData = true;
+    _loadData();
   }
 
   @override
@@ -62,25 +72,40 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final user = AuthScope.of(context).profile;
-    final userId = user?.email ?? 'guest';
-
-    final results = await Future.wait([
-      _service.getPlants(
-        nurseryId: widget.initialNurseryId,
-        category: _selectedCategory == 'All' ? null : _selectedCategory,
-        query: _searchController.text,
-      ),
-      if (userId != 'guest') _service.getWishlist(userId) else Future.value(<String>[]),
-    ]);
-
-    if (!mounted) return;
+    final request = ++_loadGeneration;
     setState(() {
-      _plants = results[0] as List<Plant>;
-      _wishlistIds = (results[1] as List<String>).toSet();
-      _isLoading = false;
+      _isLoading = true;
+      _loadError = null;
     });
+    try {
+      final user = AuthScope.of(context).profile;
+      final userId = user == null || user.isGuest ? null : user.email;
+      final results = await Future.wait([
+        _service.getPlants(
+          nurseryId: widget.initialNurseryId,
+          category: _selectedCategory == 'All' ? null : _selectedCategory,
+          query: _searchController.text,
+        ),
+        if (userId != null)
+          _service.getWishlist(userId)
+        else
+          Future.value(<String>[]),
+      ]);
+
+      if (!mounted || request != _loadGeneration) return;
+      setState(() {
+        _plants = results[0] as List<Plant>;
+        _wishlistIds = (results[1] as List<String>).toSet();
+        _isLoading = false;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Could not load nursery plants: $error\n$stackTrace');
+      if (!mounted || request != _loadGeneration) return;
+      setState(() {
+        _loadError = error;
+        _isLoading = false;
+      });
+    }
   }
 
   void _onSearchChanged() {
@@ -115,7 +140,9 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          nowInWishlist ? 'Added ${plant.name} to Wishlist' : 'Removed from Wishlist',
+          nowInWishlist
+              ? 'Added ${plant.name} to Wishlist'
+              : 'Removed from Wishlist',
         ),
         duration: const Duration(seconds: 2),
         backgroundColor: AppColors.primary,
@@ -148,7 +175,8 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
           ),
           IconButton(
             tooltip: 'Wishlist',
-            icon: const Icon(Icons.favorite_outline_rounded, color: AppColors.dark),
+            icon: const Icon(Icons.favorite_outline_rounded,
+                color: AppColors.dark),
             onPressed: () => ProtectedFeatureNavigation.open(
               context,
               destination: (_) => const WishlistScreen(),
@@ -173,7 +201,8 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, color: AppColors.muted, size: 22),
+                  const Icon(Icons.search_rounded,
+                      color: AppColors.muted, size: 22),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -185,13 +214,15 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
                         focusedBorder: InputBorder.none,
                         filled: false,
                         contentPadding: EdgeInsets.zero,
-                        hintStyle: TextStyle(color: AppColors.muted, fontSize: 13.5),
+                        hintStyle:
+                            TextStyle(color: AppColors.muted, fontSize: 13.5),
                       ),
                     ),
                   ),
                   if (_searchController.text.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.clear, size: 18, color: AppColors.muted),
+                      icon: const Icon(Icons.clear,
+                          size: 18, color: AppColors.muted),
                       onPressed: () => _searchController.clear(),
                     ),
                 ],
@@ -266,78 +297,123 @@ class _BrowsePlantsScreenState extends State<BrowsePlantsScreen> {
           // Plants List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : _plants.isEmpty
-                    ? _emptyState()
-                    : RefreshIndicator(
-                        color: AppColors.primary,
-                        onRefresh: _loadData,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
-                          itemCount: _plants.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, i) {
-                            final plant = _plants[i];
-                            final isWishlisted = _wishlistIds.contains(plant.id);
-                            return PlantCard(
-                              plant: plant,
-                              isWishlisted: isWishlisted,
-                              onToggleWishlist: () => _toggleWishlist(plant),
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => PlantDetailsScreen(plant: plant),
-                                  ),
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary))
+                : _loadError != null
+                    ? _loadErrorState()
+                    : _plants.isEmpty
+                        ? _emptyState()
+                        : RefreshIndicator(
+                            color: AppColors.primary,
+                            onRefresh: _loadData,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
+                              itemCount: _plants.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, i) {
+                                final plant = _plants[i];
+                                final isWishlisted =
+                                    _wishlistIds.contains(plant.id);
+                                return PlantCard(
+                                  plant: plant,
+                                  isWishlisted: isWishlisted,
+                                  onToggleWishlist: () =>
+                                      _toggleWishlist(plant),
+                                  onTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            PlantDetailsScreen(plant: plant),
+                                      ),
+                                    );
+                                    if (mounted) _loadData();
+                                  },
                                 );
-                                if (mounted) _loadData();
                               },
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                          ),
           ),
         ],
       ),
     );
   }
 
+  Widget _loadErrorState() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_outlined,
+                color: AppColors.muted,
+                size: 42,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Could not load plants',
+                style: TextStyle(
+                  color: AppColors.dark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Check your connection and try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              TextButton.icon(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _emptyState() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: AppColors.nurseryTint,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.nature_people_rounded,
-              color: AppColors.primary,
-              size: 38,
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: AppColors.nurseryTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.nature_people_rounded,
+                  color: AppColors.primary,
+                  size: 38,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No Plants Found',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.dark,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Try selecting another category or clear your search keywords.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.muted, fontSize: 13, height: 1.4),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'No Plants Found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.dark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Try selecting another category or clear your search keywords.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4),
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
