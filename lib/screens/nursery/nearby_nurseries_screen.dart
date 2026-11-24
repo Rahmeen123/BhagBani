@@ -114,7 +114,8 @@ class _NearbyNurseriesScreenState extends State<NearbyNurseriesScreen>
       _locationServicesDisabled = false;
     });
     try {
-      final coordinates = await _locationService.currentCoordinates();
+      final coordinates =
+          await _locationService.currentCoordinates(requirePrecise: true);
       final currentCoordinates = LandLocation(
         name: 'Current location',
         latitude: coordinates.latitude,
@@ -168,6 +169,14 @@ class _NearbyNurseriesScreenState extends State<NearbyNurseriesScreen>
         _permissionPermanentlyDenied = true;
         _locationError =
             'Location access is required to find nearby nurseries.';
+      });
+    } on LocationAccuracyReducedException {
+      if (!mounted) return;
+      setState(() {
+        _isLocating = false;
+        _permissionPermanentlyDenied = true;
+        _locationError =
+            'Precise location access is needed to show your exact area. Enable precise location in app settings, or search by city.';
       });
     } on LocationServiceDisabledException {
       if (!mounted) return;
@@ -364,28 +373,17 @@ class _NearbyNurseriesScreenState extends State<NearbyNurseriesScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Location access is required to find nearby nurseries.',
+              Text(
+                _locationError ??
+                    'Location access is required to find nearby nurseries.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.dark,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   height: 1.4,
                 ),
               ),
-              if (_locationError != null &&
-                  !_locationError!.startsWith('Location access')) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _locationError!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
               const SizedBox(height: 22),
               SizedBox(
                 width: double.infinity,

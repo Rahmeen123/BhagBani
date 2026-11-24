@@ -62,7 +62,9 @@ class LocationService {
     );
   }
 
-  Future<LandLocation> currentCoordinates() async {
+  Future<LandLocation> currentCoordinates({
+    bool requirePrecise = false,
+  }) async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const LocationServiceDisabledException();
     }
@@ -76,7 +78,17 @@ class LocationService {
     if (permission == LocationPermission.deniedForever) {
       throw const LocationPermissionDeniedForeverException();
     }
-    final position = await Geolocator.getCurrentPosition();
+    if (requirePrecise &&
+        await Geolocator.getLocationAccuracy() ==
+            LocationAccuracyStatus.reduced) {
+      throw const LocationAccuracyReducedException();
+    }
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.best,
+        timeLimit: Duration(seconds: 20),
+      ),
+    );
     return LandLocation(
       name: '',
       latitude: position.latitude,
@@ -122,8 +134,22 @@ class LocationService {
 
   String _formatAddress(Map? address, String fallback) {
     if (address == null) return fallback.trim();
+    final parts = <String>[];
+    final houseNumber = address['house_number'];
+    final street = _firstAddressValue(
+      address,
+      ['road', 'pedestrian', 'residential', 'footway'],
+    );
+    if (houseNumber is String &&
+        houseNumber.trim().isNotEmpty &&
+        street != null) {
+      parts.add('${houseNumber.trim()} $street');
+    } else if (street != null) {
+      parts.add(street);
+    }
     const localityFields = [
       'neighbourhood',
+      'city_block',
       'quarter',
       'suburb',
       'city_district',
@@ -131,9 +157,7 @@ class LocationService {
       'town',
       'village',
       'municipality',
-      'county',
     ];
-    final parts = <String>[];
     for (final field in localityFields) {
       final value = address[field];
       if (value is String && value.trim().isNotEmpty) {
@@ -155,6 +179,14 @@ class LocationService {
     return parts.isEmpty ? fallback.trim() : parts.join(', ');
   }
 
+  String? _firstAddressValue(Map address, List<String> fields) {
+    for (final field in fields) {
+      final value = address[field];
+      if (value is String && value.trim().isNotEmpty) return value.trim();
+    }
+    return null;
+  }
+
   void close() => _client.close();
 }
 
@@ -164,6 +196,10 @@ class LocationPermissionDeniedException implements Exception {
 
 class LocationPermissionDeniedForeverException implements Exception {
   const LocationPermissionDeniedForeverException();
+}
+
+class LocationAccuracyReducedException implements Exception {
+  const LocationAccuracyReducedException();
 }
 
 class LocationServiceDisabledException implements Exception {

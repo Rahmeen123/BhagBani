@@ -81,6 +81,31 @@ void main() {
     expect(find.text('Lahore, Pakistan'), findsOneWidget);
     expect(find.text('Lahore Nursery'), findsOneWidget);
   });
+
+  testWidgets('asks for precise location when OS accuracy is reduced',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NearbyNurseriesScreen(
+          nurseryService: FakeNurseryService(const []),
+          locationService: FakeLocationService(
+            const LandLocation(name: '', latitude: 0, longitude: 0),
+            reduced: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Precise location access is needed to show your exact area. Enable precise location in app settings, or search by city.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Enable Location'), findsOneWidget);
+    expect(find.text('Search by City'), findsOneWidget);
+  });
 }
 
 Nursery _nursery(String name, double latitude, double longitude) => Nursery(
@@ -109,16 +134,29 @@ class FakeNurseryService extends NurseryService {
 }
 
 class FakeLocationService extends LocationService {
-  FakeLocationService(this.location, {this.denied = false});
+  FakeLocationService(
+    this.location, {
+    this.denied = false,
+    this.reduced = false,
+  });
 
   final LandLocation location;
   final bool denied;
+  final bool reduced;
 
   @override
-  Future<LandLocation> currentCoordinates() async {
+  Future<LandLocation> currentCoordinates({
+    bool requirePrecise = false,
+  }) async {
     if (denied) throw const LocationPermissionDeniedException();
+    if (requirePrecise && reduced) {
+      throw const LocationAccuracyReducedException();
+    }
     return location;
   }
+
+  @override
+  Future<bool> openAppSettings() async => true;
 
   @override
   Future<String> reverseGeocode({
