@@ -1,4 +1,8 @@
+
 import 'package:flutter/material.dart';
+
+import '../screens/land/my_land_listings_screen.dart';
+import '../models/land.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/onboarding_screen.dart';
@@ -10,6 +14,7 @@ import '../screens/farmer/farmer_listing_screen.dart';
 import '../screens/farmer/hire_farmer_landing_screen.dart';
 import '../screens/help/help_guide_screen.dart';
 import '../screens/land/offer_land_screen.dart';
+import '../screens/land/land_marketplace_screens.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/nursery/browse_plants_screen.dart';
 import '../screens/nursery/my_orders_screen.dart';
@@ -31,10 +36,16 @@ abstract final class AppRoutes {
   static const editProfile = '/profile/edit';
   static const help = '/help';
   static const notifications = '/notifications';
+
   static const hireFarmer = '/hire-farmer';
   static const farmerListing = '/farmer-listing';
   static const becomeFarmer = '/become-farmer';
+
+  // Land routes
   static const offerLand = '/offer-land';
+  static const findLand = '/find-land';
+  static const myLandListings = '/my-land-listings';
+
   // Nursery routes
   static const browsePlants = '/browse-plants';
   static const nearbyNurseries = '/nearby-nurseries';
@@ -55,10 +66,20 @@ abstract final class AppRoutes {
       editProfile => const EditProfileScreen(),
       help => const HelpGuideScreen(),
       notifications => const NotificationsScreen(),
+
       hireFarmer => const HireFarmerLandingScreen(),
       farmerListing => const FarmerListingScreen(),
       becomeFarmer => const BecomeFarmerScreen(),
-      offerLand => const OfferLandScreen(),
+
+      // Land
+      offerLand => OfferLandScreen(
+          land: settings.arguments as Land?,
+        ),
+      findLand => const FindLandScreen(),
+      myLandListings => MyLandListingsScreen(
+          ownerUserId: settings.arguments as String? ?? '',
+        ),
+
       // Nursery
       browsePlants => const BrowsePlantsScreen(),
       nearbyNurseries => const NearbyNurseriesScreen(),
@@ -66,9 +87,15 @@ abstract final class AppRoutes {
       myOrders => const MyOrdersScreen(),
       myNursery => const NurseryGateScreen(),
       registerNursery => const RegisterNurseryScreen(),
+
       _ => null,
     };
+
     if (screen == null) return null;
-    return MaterialPageRoute<void>(builder: (_) => screen, settings: settings);
+
+    return MaterialPageRoute<void>(
+      builder: (_) => screen,
+      settings: settings,
+    );
   }
 }
