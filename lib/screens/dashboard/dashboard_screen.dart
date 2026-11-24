@@ -478,21 +478,18 @@ class _HomeTab extends StatelessWidget {
                 ),
               ),
               FeatureRowTile(
-                title: 'Offer Land',
-                subtitle: 'Find farmers for your land',
+                title: 'Offer a Land',
+                subtitle: 'Add new land or manage listings',
                 icon: Icons.landscape_rounded,
                 tint: AppColors.farmTint,
                 iconColor: AppColors.farmAccent,
-                onTap: () async {
-                  if (await requireCommunityLogin(context,
-                      actionName: 'offer your land')) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) => const OfferLandScreen(),
-                      ),
-                    );
-                  }
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const OfferLandLandingScreen(),
+                    ),
+                  );
                 },
               ),
               FeatureRowTile(
@@ -1122,23 +1119,20 @@ class _CommunityExploreTab extends StatelessWidget {
           _communityActionCard(
             context,
             icon: Icons.landscape_rounded,
-            title: 'Offer Land',
-            subtitle: 'Find farmers for your land',
+            title: 'Offer a Land',
+            subtitle: 'Add new land & manage listings',
             description:
-                'List your agricultural acreage and water resources to partner with reliable growers.',
+                'List your agricultural acreage, manage your listings, and review incoming farmer applications.',
             tint: AppColors.farmTint,
             accent: AppColors.farmAccent,
-            buttonText: 'Offer Your Land',
-            onTap: () async {
-              if (await requireCommunityLogin(context,
-                  actionName: 'offer your land')) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const OfferLandScreen(),
-                  ),
-                );
-              }
+            buttonText: 'Offer a Land',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const OfferLandLandingScreen(),
+                ),
+              );
             },
           ),
           const SizedBox(height: 14),

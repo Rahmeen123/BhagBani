@@ -9,6 +9,8 @@ import '../../services/land_service.dart';
 import '../../widgets/primary_button.dart';
 import 'applicant_profile_screen.dart';
 import '../farmer/widgets/community_login_gate.dart';
+import '../../navigation/protected_feature_navigation.dart';
+import '../auth/login_screen.dart';
 
 class FindLandScreen extends StatefulWidget {
   const FindLandScreen({super.key});
@@ -272,18 +274,40 @@ class LandDetailScreen extends StatelessWidget {
   final LandService service;
 
   void _apply(BuildContext context) {
-    openCommunityFeature(
+    final auth = AuthScope.of(context);
+    final isGuest =
+        auth.isGuest || !auth.isAuthenticated || (auth.profile?.isGuest ?? false);
+
+    if (isGuest) {
+      ProtectedFeatureNavigation.open(
+        context,
+        destination: (ctx) {
+          final profile = AuthScope.of(ctx).profile;
+          return ApplyLandScreen(
+            land: land,
+            service: service,
+            farmerUserId: profile?.email ?? '',
+            farmerName: profile?.name ?? 'Farmer',
+            farmerLocation: profile?.location ?? '',
+          );
+        },
+        loginScreenBuilder: (next) => LoginScreen(onAuthenticated: next),
+      );
+      return;
+    }
+
+    final profile = auth.profile;
+    Navigator.push<void>(
       context,
-      destination: (_) {
-        final profile = AuthScope.of(context).profile;
-        return ApplyLandScreen(
+      MaterialPageRoute<void>(
+        builder: (_) => ApplyLandScreen(
           land: land,
           service: service,
           farmerUserId: profile?.email ?? '',
           farmerName: profile?.name ?? 'Farmer',
           farmerLocation: profile?.location ?? '',
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -410,8 +434,15 @@ class _ApplyLandScreenState extends State<ApplyLandScreen> {
 
   Future<void> _submit() async {
     if (_submitting) return;
+    if (widget.farmerUserId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to submit an application.')),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
+    final profile = AuthScope.of(context).profile;
     final application = LandApplication(
       id: 'application_${DateTime.now().microsecondsSinceEpoch}',
       landId: widget.land.id,
@@ -421,6 +452,7 @@ class _ApplyLandScreenState extends State<ApplyLandScreen> {
       location: widget.farmerLocation,
       experience: _experience.text.trim(),
       skills: _suitability.text.trim(),
+      farmerPhoto: profile?.avatarPath,
       message: [
         'Introduction: ${_introduction.text.trim()}',
         'Why suitable: ${_suitability.text.trim()}',
@@ -435,10 +467,19 @@ class _ApplyLandScreenState extends State<ApplyLandScreen> {
     try {
       await widget.service.submitApplication(application);
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      Navigator.pop(context);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Application submitted successfully.')),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Application submitted successfully.'),
+          backgroundColor: AppColors.farmAccent,
+        ),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => MyAppliedLandsScreen(
+            farmerUserId: widget.farmerUserId,
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -1024,7 +1065,9 @@ class _AppliedLandCard extends StatelessWidget {
                   fontSize: 17,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 7),
-          _DetailLine(icon: Icons.person_outline_rounded, text: land.ownerName),
+          _DetailLine(
+              icon: Icons.person_outline_rounded,
+              text: 'Owner: ${land.ownerName}'),
           const SizedBox(height: 6),
           _DetailLine(icon: Icons.location_on_outlined, text: land.location),
           const SizedBox(height: 10),

@@ -9,6 +9,7 @@ import 'package:baghbani/screens/auth/welcome_screen.dart';
 import 'package:baghbani/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ void main() {
   late _TestAuthService authService;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     authService = _TestAuthService();
     auth = AuthController(authService);
   });

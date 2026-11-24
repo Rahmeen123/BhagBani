@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../navigation/protected_feature_navigation.dart';
 import '../../../providers/auth_scope.dart';
 import '../../auth/login_screen.dart';
+import '../../land/my_land_listings_screen.dart';
 import '../../land/offer_land_screen.dart';
 
 void openCommunityFeature(
@@ -24,7 +25,19 @@ Future<bool> requireCommunityLogin(
   if (actionName == 'offer your land') {
     openCommunityFeature(
       context,
-      destination: (_) => const OfferLandScreen(),
+      destination: (_) => const OfferLandLandingScreen(),
+    );
+  } else if (actionName == 'view your land listings') {
+    openCommunityFeature(
+      context,
+      destination: (ctx) => MyLandListingsScreen(
+        ownerUserId: AuthScope.of(ctx).profile?.email ?? '',
+      ),
+    );
+  } else {
+    openCommunityFeature(
+      context,
+      destination: (_) => const OfferLandLandingScreen(),
     );
   }
   return false;

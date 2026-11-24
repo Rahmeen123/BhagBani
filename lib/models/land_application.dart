@@ -11,6 +11,7 @@ class LandApplication {
     this.experience = '',
     this.skills = '',
     this.location = '',
+    this.farmerPhoto,
   });
 
   static const pending = 'Pending';
@@ -28,8 +29,13 @@ class LandApplication {
   final String experience;
   final String skills;
   final String location;
+  final String? farmerPhoto;
 
-  LandApplication copyWith({String? status, String? ownerUserId}) =>
+  LandApplication copyWith({
+    String? status,
+    String? ownerUserId,
+    String? farmerPhoto,
+  }) =>
       LandApplication(
         id: id,
         landId: landId,
@@ -42,6 +48,7 @@ class LandApplication {
         experience: experience,
         skills: skills,
         location: location,
+        farmerPhoto: farmerPhoto ?? this.farmerPhoto,
       );
 
   Map<String, dynamic> toJson() => {
@@ -56,6 +63,7 @@ class LandApplication {
         'experience': experience,
         'skills': skills,
         'location': location,
+        'farmerPhoto': farmerPhoto,
       };
 
   factory LandApplication.fromJson(Map<String, dynamic> json) =>
@@ -72,5 +80,6 @@ class LandApplication {
         experience: json['experience'] as String? ?? '',
         skills: json['skills'] as String? ?? '',
         location: json['location'] as String? ?? '',
+        farmerPhoto: json['farmerPhoto'] as String?,
       );
 }

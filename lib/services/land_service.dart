@@ -343,6 +343,28 @@ class LandService {
         .toList();
   }
 
+  Future<List<({Land land, LandApplication application})>>
+      getApplicationsForLand(String landId, {String? ownerUserId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lands = await getLands();
+    final applications = await _readApplications(prefs);
+    final matchingLands = lands.where((land) => land.id == landId);
+    if (matchingLands.isEmpty) return [];
+    final land = matchingLands.first;
+    return applications
+        .where((application) =>
+            application.landId == landId &&
+            (ownerUserId == null ||
+                ownerUserId.isEmpty ||
+                land.ownerUserId.isEmpty ||
+                land.ownerUserId == ownerUserId))
+        .map((application) => (
+              land: land,
+              application: application,
+            ))
+        .toList();
+  }
+
   Future<void> updateApplicationStatus(
     String applicationId,
     String status, {
@@ -399,11 +421,14 @@ class LandService {
     final prefs = await SharedPreferences.getInstance();
     final lands = await _readLands(prefs);
     final index = lands.indexWhere((land) => land.id == updatedLand.id);
-    if (index == -1) throw StateError('Land listing not found.');
-    if (lands[index].ownerUserId != updatedLand.ownerUserId) {
-      throw StateError('Only the land owner can update this listing.');
+    if (index == -1) {
+      lands.insert(0, updatedLand);
+    } else {
+      if (lands[index].ownerUserId != updatedLand.ownerUserId) {
+        throw StateError('Only the land owner can update this listing.');
+      }
+      lands[index] = updatedLand;
     }
-    lands[index] = updatedLand;
     await prefs.setStringList(
       _landsKey,
       lands.map((land) => jsonEncode(land.toJson())).toList(),

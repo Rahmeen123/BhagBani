@@ -435,3 +435,269 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
         ),
       );
 }
+
+class OfferLandLandingScreen extends StatelessWidget {
+  const OfferLandLandingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = AuthScope.of(context);
+    final user = auth.profile;
+    final isGuest = auth.isGuest || (user?.isGuest ?? false);
+    final ownerUserId = user?.email ?? '';
+
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: AppColors.cream,
+        elevation: 0,
+        title: const Text('Offer a Land'),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(22, 10, 22, 32),
+          children: [
+            // Hero card
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.22),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.farmTint,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.landscape_rounded,
+                          color: AppColors.farmAccent,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Offer Farmland',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Connect with experienced farmers and manage applications for your agricultural land.',
+                        style: TextStyle(
+                          color: AppColors.sageLight,
+                          fontSize: 13.5,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            const Text(
+              'Offer a Land',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.dark,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Option 1: Add New Land
+            _offerOptionCard(
+              context,
+              icon: Icons.add_circle_outline_rounded,
+              title: 'Add New Land',
+              subtitle: 'List a new farmland requirement',
+              description:
+                  'Publish acreage, soil type, water source, and preferred crops to attract growers.',
+              tint: AppColors.farmTint,
+              accent: AppColors.farmAccent,
+              buttonText: 'Add New Land',
+              onTap: () async {
+                if (isGuest) {
+                  await requireCommunityLogin(
+                    context,
+                    actionName: 'offer your land',
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const OfferLandScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+
+            // Option 2: My Land Listings
+            _offerOptionCard(
+              context,
+              icon: Icons.format_list_bulleted_rounded,
+              title: 'My Land Listings',
+              subtitle: 'Manage your listings and applications',
+              description:
+                  'View active listings, update details, close/reopen, and manage incoming applications.',
+              tint: AppColors.soft,
+              accent: AppColors.primary,
+              buttonText: 'My Land Listings',
+              onTap: () async {
+                if (isGuest) {
+                  await requireCommunityLogin(
+                    context,
+                    actionName: 'view your land listings',
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        MyLandListingsScreen(ownerUserId: ownerUserId),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _offerOptionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String description,
+    required Color tint,
+    required Color accent,
+    required String buttonText,
+    required VoidCallback onTap,
+  }) =>
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: tint,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: accent, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.dark,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              description,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.muted,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  buttonText,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
