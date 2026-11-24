@@ -18,6 +18,7 @@ import '../notifications/notifications_screen.dart';
 import '../nursery/browse_plants_screen.dart';
 import '../nursery/my_orders_screen.dart';
 import '../nursery/nearby_nurseries_screen.dart';
+import '../nursery/nursery_gate_screen.dart';
 import '../nursery/plant_details_screen.dart';
 import '../nursery/wishlist_screen.dart';
 import '../profile/profile_screen.dart';
@@ -430,6 +431,10 @@ class _HomeTab extends StatelessWidget {
                   ),
                 ),
               ),
+              _NurseryEntryTile(
+                userId: isGuest || user == null ? null : user.email,
+                onOpenNursery: () => _openNursery(context),
+              ),
               FeatureRowTile(
                 title: 'Wishlist',
                 subtitle: 'Save favorites for next season',
@@ -527,12 +532,91 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
+  Future<void> _openNursery(BuildContext context) {
+    final auth = AuthScope.of(context);
+    final destination = (_) => const NurseryGateScreen();
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: auth.isAuthenticated && !auth.isGuest
+            ? destination
+            : (_) => LoginScreen(onAuthenticated: destination),
+      ),
+    );
+  }
+
   void _openTreeRecommendation(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute<void>(builder: (_) => const TreeIntroScreen()),
     );
   }
+}
+
+class _NurseryEntryTile extends StatefulWidget {
+  const _NurseryEntryTile({
+    required this.userId,
+    required this.onOpenNursery,
+  });
+
+  final String? userId;
+  final Future<void> Function() onOpenNursery;
+
+  @override
+  State<_NurseryEntryTile> createState() => _NurseryEntryTileState();
+}
+
+class _NurseryEntryTileState extends State<_NurseryEntryTile> {
+  final _service = NurseryService();
+  Future<bool>? _hasNursery;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ModalRoute.of(context)?.isCurrent ?? true) {
+      _loadNurseryStatus();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _NurseryEntryTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) _loadNurseryStatus();
+  }
+
+  void _loadNurseryStatus() {
+    final userId = widget.userId;
+    _hasNursery = userId == null
+        ? Future<bool>.value(false)
+        : _service.getUserNursery(userId).then((nursery) => nursery != null);
+  }
+
+  Future<void> _openNursery() async {
+    await widget.onOpenNursery();
+    if (mounted) setState(_loadNurseryStatus);
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+        future: _hasNursery,
+        builder: (context, snapshot) {
+          final hasNursery = snapshot.data ?? false;
+          return FeatureRowTile(
+            title: hasNursery ? 'My Nursery' : 'Add your nursery',
+            subtitle: snapshot.hasError
+                ? 'Tap to retry or manage your nursery'
+                : hasNursery
+                    ? 'Manage your registered nursery'
+                    : 'Register and manage your nursery',
+            icon: hasNursery
+                ? Icons.storefront_rounded
+                : Icons.add_business_rounded,
+            tint: AppColors.nurseryTint,
+            iconColor: AppColors.nurseryAccent,
+            showDivider: true,
+            onTap: _openNursery,
+          );
+        },
+      );
 }
 
 class _SectionContainer extends StatelessWidget {
