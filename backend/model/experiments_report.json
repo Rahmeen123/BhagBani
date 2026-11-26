@@ -1,0 +1,399 @@
+{
+  "dataset": "C:\\Users\\bismila\\Desktop\\BhagBani\\FYP_Fall2026\\backend\\dataset\\processed_crop_dataset.csv",
+  "source_ground_truth_modified": false,
+  "rows": 38563,
+  "classes": 13,
+  "class_distribution": {
+    "Chickpea": 200,
+    "Cotton": 4932,
+    "Groundnut": 633,
+    "Maize": 3621,
+    "Millet": 586,
+    "Rapeseed Mustard": 637,
+    "Rice": 12581,
+    "Sesame": 664,
+    "Sorghum": 924,
+    "Sugarcane": 4709,
+    "Sunflower": 108,
+    "Tobacco": 53,
+    "Wheat": 8915
+  },
+  "cross_validation": {
+    "method": "3-fold StratifiedKFold",
+    "shuffle": true,
+    "random_state": 42,
+    "selection_metric": "mean macro F1"
+  },
+  "previous_model_baseline": {
+    "model": "Previous deployed Random Forest",
+    "crop_classes": 13,
+    "holdout_metrics": {
+      "accuracy": 0.6760088231477878,
+      "precision_macro": 0.47721501104104935,
+      "recall_macro": 0.6357885262080476,
+      "f1_macro": 0.5234292631686649
+    },
+    "note": "This baseline is a single holdout evaluation; the candidates below use stratified cross-validation."
+  },
+  "candidates_ranked_by_macro_f1": [
+    {
+      "name": "Random Forest - current parameters",
+      "family": "random_forest",
+      "parameters": {
+        "n_estimators": 120,
+        "max_depth": 24,
+        "min_samples_split": 2,
+        "class_weight": "balanced_subsample"
+      },
+      "imbalance_handling": "balanced_subsample",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.6817416137365034,
+          "std": 0.0024020842811620117,
+          "fold_scores": [
+            0.6798910929599378,
+            0.6808775478450287,
+            0.6844562004045434
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.4896710071411487,
+          "std": 0.013566913369012562,
+          "fold_scores": [
+            0.48056632877508293,
+            0.5052637159851197,
+            0.48318297666324345
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.6071442353136723,
+          "std": 0.00834665250701468,
+          "fold_scores": [
+            0.5979471630921727,
+            0.6142381681839063,
+            0.609247374664938
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.5292028410308971,
+          "std": 0.01180431940181362,
+          "fold_scores": [
+            0.5209256399688059,
+            0.5427200295939079,
+            0.5239628535299774
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 39.39874020000025
+    },
+    {
+      "name": "Random Forest - shallower trees",
+      "family": "random_forest",
+      "parameters": {
+        "n_estimators": 80,
+        "max_depth": 16,
+        "min_samples_split": 5,
+        "class_weight": "balanced_subsample"
+      },
+      "imbalance_handling": "balanced_subsample",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.6676349356810234,
+          "std": 0.00576436446760868,
+          "fold_scores": [
+            0.661610268378063,
+            0.6681966702971838,
+            0.6730978683678233
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.4848340460392988,
+          "std": 0.010712584487943853,
+          "fold_scores": [
+            0.48080884539150676,
+            0.49697619651214503,
+            0.47671709621424474
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.6112447367091912,
+          "std": 0.012519338514236974,
+          "fold_scores": [
+            0.6009250375010148,
+            0.6251716663872624,
+            0.6076375062392965
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.5242883488253555,
+          "std": 0.01071851870949815,
+          "fold_scores": [
+            0.5196944509282475,
+            0.5365381224940113,
+            0.5166324730538074
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 18.926528033333245
+    },
+    {
+      "name": "Random Forest - more trees",
+      "family": "random_forest",
+      "parameters": {
+        "n_estimators": 180,
+        "max_depth": 32,
+        "min_samples_split": 10,
+        "class_weight": "balanced_subsample"
+      },
+      "imbalance_handling": "balanced_subsample",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.6774369303815617,
+          "std": 0.001204874150633678,
+          "fold_scores": [
+            0.6770906262154803,
+            0.6764431305430216,
+            0.6787770343861833
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.48211235380050943,
+          "std": 0.01219318281348527,
+          "fold_scores": [
+            0.47468420654034743,
+            0.4961845488014802,
+            0.4754683060597007
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.6082417262670422,
+          "std": 0.01111896453843356,
+          "fold_scores": [
+            0.5993511979222292,
+            0.6207088513033319,
+            0.6046651295755654
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.5233291606300617,
+          "std": 0.012111548236840255,
+          "fold_scores": [
+            0.516143257069441,
+            0.5373125740558622,
+            0.5165316507648818
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 56.484211033333246
+    },
+    {
+      "name": "Random Forest - no class weights",
+      "family": "random_forest",
+      "parameters": {
+        "n_estimators": 120,
+        "max_depth": 24,
+        "min_samples_split": 2,
+        "class_weight": null
+      },
+      "imbalance_handling": "none",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.735757000536458,
+          "std": 0.0031751018736434974,
+          "fold_scores": [
+            0.7385453131077402,
+            0.7323012291893574,
+            0.7364244593122763
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.5891432090015578,
+          "std": 0.0066479084586995,
+          "fold_scores": [
+            0.5833448912983716,
+            0.5876858416297779,
+            0.5963988940765239
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.47847814007958583,
+          "std": 0.005345900535548014,
+          "fold_scores": [
+            0.48290990689628105,
+            0.4799835783044489,
+            0.4725409350380275
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.5026892095196008,
+          "std": 0.0021431496134413225,
+          "fold_scores": [
+            0.5051054174948134,
+            0.5010179160124856,
+            0.5019442950515034
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 37.05174293333342
+    },
+    {
+      "name": "Random Forest - balanced weights",
+      "family": "random_forest",
+      "parameters": {
+        "n_estimators": 120,
+        "max_depth": 24,
+        "min_samples_split": 2,
+        "class_weight": "balanced"
+      },
+      "imbalance_handling": "balanced",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.6081736844862581,
+          "std": 0.002040888092245851,
+          "fold_scores": [
+            0.6063788409179308,
+            0.6077485607592967,
+            0.6103936517815466
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.44731438299569803,
+          "std": 0.004056348827075046,
+          "fold_scores": [
+            0.445951681291422,
+            0.45187661633198645,
+            0.4441148513636856
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.6434923976590744,
+          "std": 0.01216100071694869,
+          "fold_scores": [
+            0.6397138353839418,
+            0.6570941417650916,
+            0.6336692158281897
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.4840364695765987,
+          "std": 0.004898038807772358,
+          "fold_scores": [
+            0.48252581520815363,
+            0.4895118843338189,
+            0.4800717091878235
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 29.706987599999746
+    },
+    {
+      "name": "XGBoost - balanced sample weights",
+      "family": "xgboost",
+      "parameters": {
+        "n_estimators": 120,
+        "max_depth": 6,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "min_child_weight": 4,
+        "reg_lambda": 1.0,
+        "objective": "multi:softprob",
+        "num_class": 13,
+        "eval_metric": "mlogloss",
+        "tree_method": "hist",
+        "n_jobs": 2
+      },
+      "imbalance_handling": "balanced sample weights",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.5745663002682734,
+          "std": 0.010426795001838417,
+          "fold_scores": [
+            0.5743290548424738,
+            0.5642601524817178,
+            0.5851096934806286
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.4463210798068595,
+          "std": 0.002865172479873929,
+          "fold_scores": [
+            0.44390290351198025,
+            0.44948555305565124,
+            0.4455747828529468
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.6365701048645579,
+          "std": 0.002284373926180711,
+          "fold_scores": [
+            0.6354590783227624,
+            0.6391974721969628,
+            0.6350537640739484
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.4760865354024057,
+          "std": 0.002971665428321044,
+          "fold_scores": [
+            0.4728676273969458,
+            0.4766665386500394,
+            0.4787254401602319
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 18.010794233333097
+    },
+    {
+      "name": "Gradient Boosting - balanced sample weights",
+      "family": "gradient_boosting",
+      "parameters": {
+        "n_estimators": 60,
+        "learning_rate": 0.05,
+        "max_depth": 2,
+        "subsample": 0.8
+      },
+      "imbalance_handling": "balanced sample weights",
+      "cross_validation": {
+        "accuracy": {
+          "mean": 0.5240515473311443,
+          "std": 0.00028079134268179534,
+          "fold_scores": [
+            0.5242318164138468,
+            0.5237280224054769,
+            0.5241948031741093
+          ]
+        },
+        "precision_macro": {
+          "mean": 0.37864242792678543,
+          "std": 0.0013423618576352456,
+          "fold_scores": [
+            0.379534383019414,
+            0.3792942880011529,
+            0.37709861275978923
+          ]
+        },
+        "recall_macro": {
+          "mean": 0.5752404118669863,
+          "std": 0.008034560993684908,
+          "fold_scores": [
+            0.566190088136663,
+            0.5815327467976692,
+            0.5779984006666267
+          ]
+        },
+        "f1_macro": {
+          "mean": 0.3970067435574968,
+          "std": 0.003323977135288068,
+          "fold_scores": [
+            0.3947012753357815,
+            0.4008170021188372,
+            0.3955019532178718
+          ]
+        }
+      },
+      "mean_fit_seconds_per_fold": 44.55526763333334
+    }
+  ],
+  "best_candidate": "Random Forest - current parameters"
+}

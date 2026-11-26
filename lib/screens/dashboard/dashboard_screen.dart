@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../farmer/widgets/community_login_gate.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/crop_recommendation/screens/crop_recommendation_intro_screen.dart';
+import '../../features/satellite_analysis/screens/land_analysis_screen.dart';
 import '../../features/tree_recommendation/screens/tree_intro_screen.dart';
 import '../../navigation/protected_feature_navigation.dart';
 import '../../providers/auth_scope.dart';
@@ -295,7 +297,7 @@ class _HomeTab extends StatelessWidget {
                 iconColor: AppColors.farmAccent,
                 onTap: () => _openProtected(
                   context,
-                  (_) => const ComingSoonScreen(feature: 'Crop Recommendation'),
+                  (_) => const CropRecommendationIntroScreen(),
                 ),
               ),
               _QuickActionTile(
@@ -335,7 +337,7 @@ class _HomeTab extends StatelessWidget {
                 showDivider: true,
                 onTap: () => _openProtected(
                   context,
-                  (_) => const ComingSoonScreen(feature: 'Crop Recommendation'),
+                  (_) => const CropRecommendationIntroScreen(),
                 ),
               ),
               FeatureRowTile(
@@ -356,6 +358,17 @@ class _HomeTab extends StatelessWidget {
                 onTap: () => _openProtected(
                   context,
                   (_) => const ComingSoonScreen(feature: 'Plantation Planning'),
+                ),
+              ),
+              FeatureRowTile(
+                title: 'Land Analysis',
+                subtitle: 'Review vegetation within a farm boundary',
+                icon: Icons.satellite_alt_rounded,
+                tint: AppColors.soft,
+                iconColor: AppColors.primary,
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const LandAnalysisScreen(),
                 ),
               ),
             ],

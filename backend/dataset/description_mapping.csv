@@ -1,0 +1,147 @@
+Source_Description,Standardized_Description,Class_Type,Included_In_Training
+Alfalfa,Alfalfa,crop,False
+Alfalfa (Lucerne),Alfalfa,crop,False
+BAMBOO,Bamboo,crop,False
+Bamboo,Bamboo,crop,False
+Banana,Banana,crop,False
+Barley,Barley,crop,False
+Barren,Barren,non_crop,False
+Barrenland,Barren,non_crop,False
+Barseem,Berseem,crop,False
+Bitter Gourd,Bitter Gourd,crop,False
+Bittergourd,Bitter Gourd,crop,False
+Brinjal,Eggplant,crop,False
+Builtup,Built-up,non_crop,False
+Cabbage,Cabbage,crop,False
+CANAL,Canal,non_crop,False
+Carrot,Carrot,crop,False
+Cauliflower,Cauliflower,crop,False
+Chakotra,Chakotra,crop,False
+Chickpea,Chickpea,crop,True
+Chillies,Chillies,crop,False
+Citrus,Citrus,crop,False
+CITRUS AND SEASAM,Citrus And Seasam,mixed_crop,False
+CITRUS AND SORGHUM (60-40),Citrus And Sorghum (60-40),mixed_crop,False
+CITRUS AND TILL  INTERCROP (25:75 %) TILL  HARVEST,Citrus And Till Intercrop (25:75 %) Till Harvest,mixed_crop,False
+"CITRUS, MANGO AND DATES (50:35:15","Citrus, Mango And Dates (50:35:15",mixed_crop,False
+"CITRUS, MANGO AND MILLET MIX","Citrus, Mango And Millet Mix",mixed_crop,False
+Cordamom,Cardamom,crop,False
+Coriander,Coriander,crop,False
+Cotton,Cotton,crop,True
+Cow pea,Cowpea,crop,False
+Cucumber,Cucumber,crop,False
+Datepalm,Date Palm,crop,False
+Dates,Date Palm,crop,False
+Egg plant,Eggplant,crop,False
+Eucalyptus,Eucalyptus,crop,False
+Euclayptus,Eucalyptus,crop,False
+Fallow (Agriculture),Fallow (Agriculture),non_crop,False
+Fallowland,Fallow (Agriculture),non_crop,False
+FALSA,Falsa,crop,False
+Falsa,Falsa,crop,False
+FALSA AND MANGO 50-50,Falsa And Mango 50-50,mixed_crop,False
+Fenugreek,Fenugreek,crop,False
+fenugreek,Fenugreek,crop,False
+FISH FARM,Fish Farm,non_crop,False
+FLOOD WATER,Flood Water,non_crop,False
+FODDER,Fodder,crop,False
+FODDER INITIAL(POOR),Fodder Initial(Poor),crop,False
+Forest,Forest,non_crop,False
+Garlic,Garlic,crop,False
+Grapes,Grapes,crop,False
+GRASS,Grass,non_crop,False
+GRASS Fodder,Grass Fodder,crop,False
+Grassland,Grassland,non_crop,False
+GRID STATION,Grid Station,non_crop,False
+Ground nuts/Peanuts,Groundnut,crop,True
+Guarseed,Guarseed,crop,False
+GUARSEED FODDER,Guarseed Fodder,crop,False
+Guarseed Fodder,Guarseed Fodder,crop,False
+Guava,Guava,crop,False
+"GUAVA  AND SORGHUM 50,50","Guava And Sorghum 50,50",mixed_crop,False
+"GUAVA , SORGHUM","Guava , Sorghum",mixed_crop,False
+"GUAVA, LADY FINGER (30,70)","Guava, Lady Finger (30,70)",mixed_crop,False
+HARDAL,Hardal,crop,False
+INTER CROP COTTON AND CITRUS 80:20,Inter Crop Cotton And Citrus 80:20,mixed_crop,False
+Jantar,Jantar,crop,False
+Jujube,Jujube,crop,False
+Lady Finger,Okra,crop,False
+Lady finger,Okra,crop,False
+LAKE,Lake,non_crop,False
+Lemon,Lemon,crop,False
+Lentil,Lentil,crop,False
+Linseed,Linseed,crop,False
+LOBIA BEANS,Cowpea,crop,False
+Loquat,Loquat,crop,False
+LYCHEE,Lychee,crop,False
+Maize,Maize,crop,True
+Maize (Corn),Maize,crop,True
+MAIZE FODDER,Maize Fodder,crop,False
+Mango,Mango,crop,False
+MANGO AND MAIZE (24:75%),Mango And Maize (24:75%),mixed_crop,False
+Melon,Melon,crop,False
+Millet,Millet,crop,True
+Mint,Mint,crop,False
+Mix Barseem Citrus,Mix Barseem Citrus,mixed_crop,False
+Mix Barseem Guava,Mix Barseem Guava,mixed_crop,False
+Mix Barseem Guava ,Mix Barseem Guava,mixed_crop,False
+Mix Barseem Orchard,Mix Barseem Orchard,mixed_crop,False
+Mix Barseem Rapeseed Mustard,Mix Barseem Rapeseed Mustard,mixed_crop,False
+Mix Chillies Garlic,Mix Chillies Garlic,mixed_crop,False
+Mix Citrus Grassland,Mix Citrus Grassland,mixed_crop,False
+Mix Citrus Wheat,Mix Citrus Wheat,mixed_crop,False
+Mix COTTON AND MAIZE (AT SOWING)90:10,Mix Cotton And Maize (At Sowing)90:10,mixed_crop,False
+Mix Garlic Melon,Mix Garlic Melon,mixed_crop,False
+MIX ORCHARD,Mix Orchard,mixed_crop,False
+MIX ORCHARD AND MAIZE,Mix Orchard And Maize,mixed_crop,False
+MIX VEGETABLES,Mix Vegetables,mixed_crop,False
+MIXED CITRUS VARITIES FEW PLANTS OF GUAVA AND WEED,Mixed Citrus Varities Few Plants Of Guava And Weed,mixed_crop,False
+MIXED FODDER,Mixed Fodder,mixed_crop,False
+Mong bean,Mong Bean,crop,False
+MOTT GRASS,Mott Grass,crop,False
+Mott Grass,Mott Grass,crop,False
+NAPIER GRASS (FODDER),Napier Grass (Fodder),crop,False
+NIPPEAR GRASS  MIXED WITH SORGHUM (15:85),Nippear Grass Mixed With Sorghum (15:85),mixed_crop,False
+Oat,Oat,crop,False
+Okra,Okra,crop,False
+OLIVE,Olive,crop,False
+Onion,Onion,crop,False
+Orange (Citrus),Orange (Citrus),crop,False
+PAPAYA,Papaya,crop,False
+Papaya,Papaya,crop,False
+Peach,Peach,crop,False
+Peas,Peas,crop,False
+Pigeon Pea,Pigeon Pea,crop,False
+Pomegranate,Pomegranate,crop,False
+Potato,Potato,crop,False
+PUMPKIN,Pumpkin,crop,False
+Pumpkin,Pumpkin,crop,False
+Rapeseed Mustard,Rapeseed Mustard,crop,True
+Rhode Grass,Rhodes Grass,crop,False
+RHODES GRASS,Rhodes Grass,crop,False
+Rice,Rice,crop,True
+Ridge gourd,Ridge Gourd,crop,False
+ROAD TREE,Road Tree,non_crop,False
+Rose,Rose,crop,False
+ROSE FLOWER,Rose,crop,False
+Sesame (Til),Sesame,crop,True
+Shrub,Shrub,non_crop,False
+Sorghum,Sorghum,crop,True
+Spinach,Spinach,crop,False
+Strawberry,Strawberry,crop,False
+Sugarbeet,Sugarbeet,crop,False
+Sugarcane,Sugarcane,crop,True
+Sunflower,Sunflower,crop,True
+Sweet potato,Sweet Potato,crop,False
+Taro,Taro,crop,False
+Taro root,Taro,crop,False
+Tobacco,Tobacco,crop,True
+Tomato,Tomato,crop,False
+TURMERIC,Turmeric,crop,False
+Turmeric,Turmeric,crop,False
+Turnip,Turnip,crop,False
+VEGETABLE,Vegetable,crop,False
+Water,Water,non_crop,False
+Watermelon,Watermelon,crop,False
+Weeds,Weeds,non_crop,False
+Wheat,Wheat,crop,True

@@ -1,0 +1,345 @@
+{
+  "source_dataset": "C:\\Users\\bismila\\Desktop\\BhagBani\\FYP_Fall2026\\backend\\dataset\\original_ground_truth_dataset.xlsx",
+  "training_dataset": "C:\\Users\\bismila\\Desktop\\BhagBani\\FYP_Fall2026\\backend\\dataset\\processed_crop_dataset.csv",
+  "mapping_file": "C:\\Users\\bismila\\Desktop\\BhagBani\\FYP_Fall2026\\backend\\dataset\\description_mapping.csv",
+  "training_rows": 38563,
+  "final_crop_classes": 13,
+  "minimum_class_observations": 50,
+  "requested_crop_classes": [
+    "Barley",
+    "Chickpea",
+    "Cotton",
+    "Groundnut",
+    "Maize",
+    "Millet",
+    "Rapeseed Mustard",
+    "Rice",
+    "Sesame",
+    "Sorghum",
+    "Sugarcane",
+    "Sunflower",
+    "Tobacco",
+    "Wheat"
+  ],
+  "requested_classes_removed_by_minimum": [
+    "Barley"
+  ],
+  "class_distribution": {
+    "Chickpea": 200,
+    "Cotton": 4932,
+    "Groundnut": 633,
+    "Maize": 3621,
+    "Millet": 586,
+    "Rapeseed Mustard": 637,
+    "Rice": 12581,
+    "Sesame": 664,
+    "Sorghum": 924,
+    "Sugarcane": 4709,
+    "Sunflower": 108,
+    "Tobacco": 53,
+    "Wheat": 8915
+  },
+  "evaluation": {
+    "method": "Stratified 80/20 holdout; singleton classes remain in final training but are not evaluated.",
+    "training_rows": 30856,
+    "holdout_rows": 7707,
+    "evaluated_classes": [
+      "Chickpea",
+      "Cotton",
+      "Groundnut",
+      "Maize",
+      "Millet",
+      "Rapeseed Mustard",
+      "Rice",
+      "Sesame",
+      "Sorghum",
+      "Sugarcane",
+      "Sunflower",
+      "Tobacco",
+      "Wheat"
+    ],
+    "accuracy": 0.6760088231477878,
+    "precision_macro": 0.47721501104104935,
+    "recall_macro": 0.6357885262080476,
+    "f1_macro": 0.5234292631686649,
+    "confusion_matrix_labels": [
+      "Chickpea",
+      "Cotton",
+      "Groundnut",
+      "Maize",
+      "Millet",
+      "Rapeseed Mustard",
+      "Rice",
+      "Sesame",
+      "Sorghum",
+      "Sugarcane",
+      "Sunflower",
+      "Tobacco",
+      "Wheat"
+    ],
+    "confusion_matrix": [
+      [
+        32,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      [
+        0,
+        639,
+        4,
+        101,
+        22,
+        0,
+        50,
+        80,
+        17,
+        65,
+        0,
+        0,
+        8
+      ],
+      [
+        0,
+        0,
+        123,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        50,
+        3,
+        459,
+        5,
+        5,
+        59,
+        16,
+        26,
+        27,
+        5,
+        1,
+        68
+      ],
+      [
+        0,
+        10,
+        1,
+        2,
+        74,
+        0,
+        8,
+        10,
+        5,
+        7,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        0,
+        0,
+        8,
+        0,
+        51,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        61
+      ],
+      [
+        0,
+        136,
+        2,
+        153,
+        28,
+        0,
+        1840,
+        39,
+        78,
+        240,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        30,
+        4,
+        7,
+        5,
+        0,
+        10,
+        39,
+        11,
+        26,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        8,
+        9,
+        8,
+        15,
+        0,
+        45,
+        8,
+        68,
+        23,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        93,
+        3,
+        48,
+        24,
+        6,
+        82,
+        58,
+        35,
+        507,
+        2,
+        1,
+        82
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        10,
+        0,
+        9
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0
+      ],
+      [
+        57,
+        0,
+        0,
+        109,
+        0,
+        175,
+        0,
+        0,
+        0,
+        24,
+        44,
+        16,
+        1358
+      ]
+    ]
+  },
+  "feature_importance": [
+    {
+      "feature": "Longitude",
+      "importance": 0.2659127444197226
+    },
+    {
+      "feature": "Latitude",
+      "importance": 0.2653090166949013
+    },
+    {
+      "feature": "District",
+      "importance": 0.1713345073303235
+    },
+    {
+      "feature": "Temperature",
+      "importance": 0.07892241336354651
+    },
+    {
+      "feature": "Season",
+      "importance": 0.07314964699042512
+    },
+    {
+      "feature": "Humidity",
+      "importance": 0.07000641256496322
+    },
+    {
+      "feature": "Rainfall",
+      "importance": 0.04068369859877726
+    },
+    {
+      "feature": "Month",
+      "importance": 0.03468156003734037
+    },
+    {
+      "feature": "Province",
+      "importance": 0.0
+    }
+  ],
+  "comparison_with_previous_model": {
+    "previous_model": {
+      "final_crop_classes": 82,
+      "training_rows": 42247,
+      "metrics": {
+        "accuracy": 0.5650213573801613,
+        "precision_macro": 0.17253054830539774,
+        "recall_macro": 0.35766363627030356,
+        "f1_macro": 0.21464049135803007
+      }
+    },
+    "new_model": {
+      "final_crop_classes": 13,
+      "training_rows": 38563,
+      "metrics": {
+        "accuracy": 0.6760088231477878,
+        "precision_macro": 0.47721501104104935,
+        "recall_macro": 0.6357885262080476,
+        "f1_macro": 0.5234292631686649
+      }
+    },
+    "metric_deltas_new_minus_previous": {
+      "accuracy": 0.11098746576762641,
+      "precision_macro": 0.30468446273565164,
+      "recall_macro": 0.27812488993774404,
+      "f1_macro": 0.3087887718106348
+    },
+    "note": "The previous evaluation covered a broader crop set; metrics are not a like-for-like benchmark."
+  }
+}

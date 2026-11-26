@@ -6,6 +6,8 @@ import 'package:baghbani/screens/auth/onboarding_screen.dart';
 import 'package:baghbani/screens/auth/signup_screen.dart';
 import 'package:baghbani/screens/auth/splash_screen.dart';
 import 'package:baghbani/screens/auth/welcome_screen.dart';
+import 'package:baghbani/features/crop_recommendation/screens/crop_recommendation_intro_screen.dart';
+import 'package:baghbani/screens/dashboard/dashboard_screen.dart';
 import 'package:baghbani/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -115,6 +117,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Select Land Location'), findsOneWidget);
+  });
+
+  testWidgets('dashboard crop flow resumes at its intro after login',
+      (tester) async {
+    await auth.register(
+      const UserProfile(
+        name: 'Test Farmer',
+        email: 'farmer@example.com',
+        phone: '5550100',
+        location: 'Lahore',
+      ),
+      'password123',
+    );
+    await auth.continueAsGuest();
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      AuthScope(
+        controller: auth,
+        child: const MaterialApp(home: DashboardScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Crop Recommendation'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Crop Recommendation'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsOneWidget);
+
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'farmer@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+    await tester.tap(find.text('Log in'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CropRecommendationIntroScreen), findsOneWidget);
+    expect(find.text('Good morning,'), findsNothing);
   });
 
   testWidgets('splash preserves onboarding and welcome for signed-out users',

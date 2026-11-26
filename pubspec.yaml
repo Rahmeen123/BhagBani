@@ -17,6 +17,8 @@ dependencies:
   sqflite: ^2.3.3
   sqflite_common_ffi_web: ^1.0.2
   path: ^1.9.1
+  google_maps_flutter: ^2.19.0
+  geocoding: ^5.0.1
 
 dev_dependencies:
   flutter_test:
