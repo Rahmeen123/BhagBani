@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../farmer/widgets/community_login_gate.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/plant_recommendation/screens/plant_intro_screen.dart';
 import '../../features/crop_recommendation/screens/crop_recommendation_intro_screen.dart';
 import '../../features/satellite_analysis/screens/land_analysis_screen.dart';
+
 import '../../features/tree_recommendation/screens/tree_intro_screen.dart';
 import '../../navigation/protected_feature_navigation.dart';
 import '../../providers/auth_scope.dart';
@@ -305,11 +307,7 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.local_florist_rounded,
                 tint: AppColors.gardenTint,
                 iconColor: AppColors.gardenAccent,
-                onTap: () => _openProtected(
-                  context,
-                  (_) =>
-                      const ComingSoonScreen(feature: 'Plant Recommendation'),
-                ),
+                onTap: () => _openPlantRecommendation(context),
               ),
               _QuickActionTile(
                 label: 'Trees',
@@ -388,11 +386,7 @@ class _HomeTab extends StatelessWidget {
                 tint: AppColors.gardenTint,
                 iconColor: AppColors.gardenAccent,
                 showDivider: true,
-                onTap: () => _openProtected(
-                  context,
-                  (_) =>
-                      const ComingSoonScreen(feature: 'Plant Recommendation'),
-                ),
+                onTap: () => _openPlantRecommendation(context),
               ),
               FeatureRowTile(
                 title: 'Plant Health Analysis',
@@ -551,6 +545,13 @@ class _HomeTab extends StatelessWidget {
             ? destination
             : (_) => LoginScreen(onAuthenticated: destination),
       ),
+    );
+  }
+
+  void _openPlantRecommendation(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const PlantIntroScreen()),
     );
   }
 
