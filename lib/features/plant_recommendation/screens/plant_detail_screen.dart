@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../models/plant_recommendation.dart';
 import '../services/plant_recommendation_service.dart';
 import '../widgets/plant_widgets.dart';
+import '../widgets/plant_health_action_button.dart';
 
 class PlantDetailScreen extends StatelessWidget {
   const PlantDetailScreen({
@@ -35,28 +36,6 @@ class PlantDetailScreen extends StatelessWidget {
                     plant: plant,
                     size: 112,
                     borderRadius: 28,
-                  ),
-                ),
-                Positioned(
-                  top: 14,
-                  right: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.soft,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${recommendation.matchPercentage}% Match',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -96,25 +75,34 @@ class PlantDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _DetailRow(label: 'Plant Name', value: plant.name),
-                _DetailRow(label: 'Common / Easy Name', value: recommendation.easyName),
-                _DetailRow(label: 'Urdu Name (اردو نام)', value: recommendation.urduName),
-                _DetailRow(
-                  label: 'Growth Type',
-                  value: PlantRecommendationService.formatGrowthLabel(
-                    plant.growth,
+                if (plant.healthSupported) ...[
+                  _DetailRow(label: 'Plant Name', value: plant.name),
+                  _DetailRow(
+                    label: 'Common / Easy Name',
+                    value: recommendation.easyName,
                   ),
-                ),
+                  _DetailRow(
+                    label: 'Urdu Name (اردو نام)',
+                    value: recommendation.urduName,
+                  ),
+                  _DetailRow(
+                    label: 'Growth Type',
+                    value: PlantRecommendationService.formatGrowthLabel(
+                      plant.growth,
+                    ),
+                  ),
+                  _DetailRow(
+                    label: 'Sunlight Requirement',
+                    value: PlantRecommendationService.formatSunlightLabel(
+                      plant.sunlight,
+                    ),
+                  ),
+                  _DetailRow(label: 'Care Level', value: plant.careLevel),
+                ],
                 _DetailRow(
                   label: 'Soil Requirement',
                   value: PlantRecommendationService.formatSoilLabel(
                     plant.soil,
-                  ),
-                ),
-                _DetailRow(
-                  label: 'Sunlight Requirement',
-                  value: PlantRecommendationService.formatSunlightLabel(
-                    plant.sunlight,
                   ),
                 ),
                 _DetailRow(
@@ -131,71 +119,74 @@ class PlantDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Care Tips Section
-          PlantInfoCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.tips_and_updates_outlined,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Care Tips',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.dark,
+          if (plant.healthSupported) ...[
+            const SizedBox(height: 16),
+            PlantInfoCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.tips_and_updates_outlined,
+                        size: 20,
+                        color: AppColors.primary,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                for (var i = 0; i < recommendation.careTips.length; i++)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      bottom: i == recommendation.careTips.length - 1 ? 0 : 12,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 2),
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            color: AppColors.soft,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Care Tips',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.dark,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            recommendation.careTips[i],
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              color: AppColors.dark,
-                              height: 1.45,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  for (var i = 0; i < recommendation.careTips.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom:
+                            i == recommendation.careTips.length - 1 ? 0 : 12,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 2),
+                            width: 22,
+                            height: 22,
+                            decoration: const BoxDecoration(
+                              color: AppColors.soft,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 14,
+                              color: AppColors.primary,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              recommendation.careTips[i],
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: AppColors.dark,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+            PlantHealthActionButton(recommendation: recommendation),
+          ],
         ],
       ),
     );

@@ -3,20 +3,14 @@ import '../models/plant.dart';
 import '../models/plant_preferences.dart';
 import '../models/plant_recommendation.dart';
 
-/// Scoring-based home plant matching engine (non-ML).
+/// Exact-filter home plant matching engine (non-ML).
 class PlantRecommendationService {
-  static const int _sunlightWeight = 45;
-  static const int _wateringWeight = 45;
-  static const int _soilWeight = 5;
-  static const int _growthWeight = 5;
-  static const int _maxResults = 5;
-
   static const Map<String, WateringPreference> _wateringMapping = {
-    'water weekly': WateringPreference.lowCare,
     'water when soil is dry': WateringPreference.lowCare,
     'let soil dry between watering': WateringPreference.lowCare,
     'water when topsoil is dry': WateringPreference.lowCare,
     'water when soil feels dry': WateringPreference.lowCare,
+    'water weekly': WateringPreference.regularCare,
     'regular, well-drained soil': WateringPreference.regularCare,
     'regular watering': WateringPreference.regularCare,
     'keep soil slightly moist': WateringPreference.regularCare,
@@ -26,74 +20,85 @@ class PlantRecommendationService {
     'keep soil evenly moist': WateringPreference.highCare,
   };
 
-  /// Scores [plants] against [preferences] and returns up to the top 5
-  /// distinct plant recommendations ordered from highest to lowest score.
+  /// Applies exact preference filters and relaxes optional filters in order.
   List<PlantRecommendation> recommend({
     required List<Plant> plants,
     required PlantPreferences preferences,
   }) {
-    final bestByName = <String, _ScoredPlant>{};
+    final sunlightAndCare = plants
+        .where(
+          (plant) =>
+              normalizeSunlight(plant.sunlight) == preferences.sunlight &&
+              plant.careLevel.trim().toLowerCase() ==
+                  preferences.watering.careLevel.toLowerCase(),
+        )
+        .toList(growable: false);
 
-    for (var index = 0; index < plants.length; index++) {
-      final plant = plants[index];
-      final sunlightMatched =
-          normalizeSunlight(plant.sunlight) == preferences.sunlight;
-      final wateringMatched =
-          classifyWatering(plant.watering) == preferences.watering;
-
-      // Sunlight and watering are highest-priority core requirements.
-      if (!sunlightMatched || !wateringMatched) {
-        continue;
-      }
-
-      var score = _sunlightWeight + _wateringWeight;
-
-      final soilMatched = preferences.soilType != null &&
-          plant.soil.trim().toLowerCase() ==
-              preferences.soilType!.datasetValue;
-      if (soilMatched) {
-        score += _soilWeight;
-      }
-
-      final growthScore = _scoreGrowth(plant.growth, preferences.growth);
-      score += growthScore;
-
-      final normalizedName = plant.name.trim().toLowerCase();
-      final existing = bestByName[normalizedName];
-      if (existing == null || score > existing.score) {
-        final localName = PlantLocalNames.resolve(plant.name);
-        bestByName[normalizedName] = _ScoredPlant(
-          recommendation: PlantRecommendation(
-            plant: plant,
-            easyName: localName.easyName,
-            urduName: localName.urduName,
-            matchPercentage: score.clamp(0, 100),
-            reasons: _buildReasons(
-              plant: plant,
-              preferences: preferences,
-              soilMatched: soilMatched,
-              growthMatched:
-                  preferences.growth != GrowthPreference.noPreference &&
-                      growthScore == _growthWeight,
-            ),
-            careTips: buildCareTips(plant),
-          ),
-          score: score,
-          originalIndex: existing?.originalIndex ?? index,
-        );
-      }
+    var matches = _applyOptionalFilters(sunlightAndCare, preferences);
+    if (matches.isEmpty) {
+      matches = _applyOptionalFilters(
+        sunlightAndCare,
+        preferences,
+        includeGrowth: false,
+      );
+    }
+    if (matches.isEmpty && preferences.soilType != null) {
+      matches = _applyOptionalFilters(
+        sunlightAndCare,
+        preferences,
+        includeSoil: false,
+        includeGrowth: false,
+      );
+    }
+    if (matches.isEmpty) {
+      final careLevels = WateringPreference.values
+          .map((preference) => preference.careLevel.toLowerCase())
+          .toList(growable: false);
+      final selectedIndex =
+          careLevels.indexOf(preferences.watering.careLevel.toLowerCase());
+      final adjacent = <String>{
+        if (selectedIndex > 0) careLevels[selectedIndex - 1],
+        if (selectedIndex + 1 < careLevels.length)
+          careLevels[selectedIndex + 1],
+      };
+      matches = plants
+          .where(
+            (plant) =>
+                normalizeSunlight(plant.sunlight) == preferences.sunlight &&
+                adjacent.contains(plant.careLevel.trim().toLowerCase()),
+          )
+          .toList(growable: false);
     }
 
-    final ranked = bestByName.values.toList()
-      ..sort((a, b) {
-        final byScore = b.score.compareTo(a.score);
-        if (byScore != 0) return byScore;
-        return a.originalIndex.compareTo(b.originalIndex);
-      });
+    return matches.map((plant) {
+      final localName = PlantLocalNames.resolve(plant.name);
+      return PlantRecommendation(
+        plant: plant,
+        easyName: localName.easyName,
+        urduName: localName.urduName,
+        careTips: buildCareTips(plant),
+      );
+    }).toList(growable: false);
+  }
 
-    return ranked
-        .take(_maxResults)
-        .map((entry) => entry.recommendation)
+  static List<Plant> _applyOptionalFilters(
+    List<Plant> plants,
+    PlantPreferences preferences, {
+    bool includeSoil = true,
+    bool includeGrowth = true,
+  }) {
+    return plants
+        .where(
+          (plant) =>
+              (!includeSoil ||
+                  preferences.soilType == null ||
+                  plant.soil.trim().toLowerCase() ==
+                      preferences.soilType!.datasetValue) &&
+              (!includeGrowth ||
+                  preferences.growth.datasetValue == null ||
+                  plant.growth.trim().toLowerCase() ==
+                      preferences.growth.datasetValue),
+        )
         .toList(growable: false);
   }
 
@@ -121,9 +126,10 @@ class PlantRecommendationService {
     final exact = _wateringMapping[value];
     if (exact != null) return exact;
 
-    if (value.contains('dry') || value.contains('weekly')) {
+    if (value.contains('dry')) {
       return WateringPreference.lowCare;
     }
+    if (value.contains('weekly')) return WateringPreference.regularCare;
     if (value.contains('consistently') ||
         value.contains('evenly') ||
         value == 'keep soil moist' ||
@@ -131,48 +137,6 @@ class PlantRecommendationService {
       return WateringPreference.highCare;
     }
     return WateringPreference.regularCare;
-  }
-
-  static int _scoreGrowth(String rawGrowth, GrowthPreference preference) {
-    final target = preference.datasetValue;
-    if (target == null) return _growthWeight;
-    final actual = rawGrowth.trim().toLowerCase();
-    if (actual == target) return _growthWeight;
-    if (actual == 'moderate') return 2;
-    return 0;
-  }
-
-  static List<String> _buildReasons({
-    required Plant plant,
-    required PlantPreferences preferences,
-    required bool soilMatched,
-    required bool growthMatched,
-  }) {
-    final reasons = <String>[
-      switch (preferences.sunlight) {
-        SunlightPreference.fullSun => 'Suitable for full sun spots',
-        SunlightPreference.partialSun => 'Thrives in partial sunlight',
-        SunlightPreference.lowLight => 'Suitable for low light',
-      },
-      switch (preferences.watering) {
-        WateringPreference.lowCare => 'Requires less watering',
-        WateringPreference.regularCare => 'Fits a regular watering routine',
-        WateringPreference.highCare => 'Thrives with frequent watering',
-      },
-    ];
-
-    if (soilMatched && preferences.soilType != null) {
-      reasons.add('Matches your ${preferences.soilType!.label.toLowerCase()} soil');
-    } else if (growthMatched) {
-      reasons.add('Matches your ${preferences.growth.label.toLowerCase()} goal');
-    } else if (plant.fertilizationType.trim().toLowerCase() == 'no' ||
-        preferences.watering == WateringPreference.lowCare) {
-      reasons.add('Easy to maintain');
-    } else {
-      reasons.add('Grows well in ${plant.soil.trim().toLowerCase()} soil');
-    }
-
-    return reasons;
   }
 
   /// Formats dataset sunlight value for display on the detail screen.
@@ -221,7 +185,8 @@ class PlantRecommendationService {
         'Keep in bright morning sun or dappled shade away from harsh afternoon heat.',
       SunlightPreference.lowLight =>
         'Position indoors near a shaded window or bright room without harsh direct sun.',
-      null => 'Provide ${plant.sunlight.trim().toLowerCase()} for steady growth.',
+      null =>
+        'Provide ${plant.sunlight.trim().toLowerCase()} for steady growth.',
     };
 
     final wateringTip = switch (classifyWatering(plant.watering)) {
@@ -252,16 +217,3 @@ class PlantRecommendationService {
         .join(' ');
   }
 }
-
-class _ScoredPlant {
-  const _ScoredPlant({
-    required this.recommendation,
-    required this.score,
-    required this.originalIndex,
-  });
-
-  final PlantRecommendation recommendation;
-  final int score;
-  final int originalIndex;
-}
-

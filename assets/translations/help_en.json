@@ -1,0 +1,75 @@
+{
+  "heroTitle": "A little guidance goes a long way.",
+  "heroSubtitle": "Explore walkthroughs, FAQs and agricultural tips.",
+  "guidesTitle": "Getting started",
+  "guidesSubtitle": "Learn your way around Baghbani modules",
+  "guides": [
+    {
+      "title": "How Baghbani Works",
+      "body": "Baghbani combines smart satellite land analysis, personalized crop & tree planning, direct nursery shopping, and grower community collaboration into a single, seamless platform. Simply select any service from your home dashboard to begin.",
+      "icon": "eco",
+      "accent": "primary",
+      "tint": "soft"
+    },
+    {
+      "title": "Crop Recommendation Guide",
+      "body": "Our AI analyzes your soil texture, historical seasonal weather, pH level, water capacity, and geographical coordinates to recommend optimal cash and food crops that offer the highest yield for your specific farmland.",
+      "icon": "agriculture",
+      "accent": "farmAccent",
+      "tint": "farmTint"
+    },
+    {
+      "title": "Tree Recommendation Guide",
+      "body": "Find perennial trees for shade, fruit, timber, or windbreaks based on root depth, annual water requirement, local climate zone, and spacing requirements.",
+      "icon": "park",
+      "accent": "farmAccent",
+      "tint": "farmTint"
+    },
+    {
+      "title": "Plant Buying Guide",
+      "body": "Examine nursery stock for healthy vibrant leaves, white root structure, and absent pests. Our nursery module connects you with certified local plant providers.",
+      "icon": "local_florist",
+      "accent": "gardenAccent",
+      "tint": "gardenTint"
+    },
+    {
+      "title": "Farmer Hiring Guide",
+      "body": "Post detailed requirements including task type (harvesting, seeding, weeding), duration, daily rate, and tools required to hire verified agricultural labor.",
+      "icon": "handshake",
+      "accent": "communityAccent",
+      "tint": "communityTint"
+    }
+  ],
+  "faqTitle": "Frequently Asked Questions",
+  "faqSubtitle": "Quick answers to common questions",
+  "faqs": [
+    {
+      "title": "Is Baghbani free to use?",
+      "body": "Yes! All foundational features—including crop recommendations, plant search, nursery directory, and community listings—are free for growers.",
+      "icon": "help",
+      "accent": "primary",
+      "tint": "soft"
+    },
+    {
+      "title": "Can I use Baghbani for home gardening?",
+      "body": "Absolutely! The Garden and Nursery modules are specifically crafted with household plants, balcony gardens, and terrace planting in mind.",
+      "icon": "yard",
+      "accent": "gardenAccent",
+      "tint": "gardenTint"
+    },
+    {
+      "title": "Can I use the app without an account?",
+      "body": "Yes, you can browse as a guest! However, creating a free account allows you to save your field analysis, wishlists, and customized alerts.",
+      "icon": "person",
+      "accent": "communityAccent",
+      "tint": "communityTint"
+    },
+    {
+      "title": "How does satellite land analysis work?",
+      "body": "By drawing your land boundary on the interactive map, our engine pulls remote-sensing GIS indexes to evaluate soil condition and vegetation health.",
+      "icon": "satellite",
+      "accent": "farmAccent",
+      "tint": "farmTint"
+    }
+  ]
+}

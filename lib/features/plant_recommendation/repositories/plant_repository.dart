@@ -8,7 +8,8 @@ import '../models/plant.dart';
 class PlantRepository {
   PlantRepository({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
 
-  static const datasetPath = 'dataset for plant recommendation/plants.csv';
+  static const datasetPath =
+      'dataset for plant recommendation/plants_clean.csv';
 
   final AssetBundle _bundle;
   Future<List<Plant>>? _cachedPlants;
@@ -56,9 +57,12 @@ class PlantRepository {
           'A plant row has an unexpected number of columns.',
         );
       }
-      return Plant.fromCsvRow({
+      final values = {
         for (var i = 0; i < headers.length; i++) headers[i]: row[i].trim(),
-      });
+      };
+      return values.containsKey('name')
+          ? Plant.fromCleanCsvRow(values)
+          : Plant.fromCsvRow(values);
     }).toList(growable: false);
   }
 
@@ -164,4 +168,3 @@ class PlantRepository {
     return rows;
   }
 }
-

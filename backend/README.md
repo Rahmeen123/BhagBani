@@ -130,6 +130,41 @@ suitability.
 The serialized artifacts are version-checked against the installed Pandas and
 scikit-learn versions. Re-run training after changing either dependency.
 
+## Garden plant recommendation and health
+
+The Garden recommendation endpoint filters the cleaned plant data using exact
+sunlight and care-level matches, then applies the optional growth, soil, and
+adjacent-care fallbacks. It does not use a model or ranking score.
+
+From the repository root, regenerate `dataset for plant recommendation/plants_clean.csv`
+from the cp1252 source with:
+
+```powershell
+python backend\clean_dataset.py
+```
+
+`POST /recommend` accepts `sunlight` (`Full Sun`, `Partial Sun`, or `Low
+Light`), `care_level` (`Low`, `Regular`, or `High`), and optional `soil` and
+`growth` values. It returns filtered plant records with their care and
+health-support fields.
+
+`POST /health-analysis` accepts multipart fields `image` and `plant_name`.
+At startup the API loads
+`linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification` once through
+Transformers; it does not train a model. The first startup downloads the model
+if it is not already in the Hugging Face cache. Results are filtered by the
+selected plant species using the model's `id2label` configuration and include
+a confidence, care tips, and an expert-diagnosis disclaimer.
+
+Run backend tests from `backend`:
+
+```powershell
+python -m unittest discover -s tests
+```
+
+Install the requirements in a Python environment supported by PyTorch and
+Transformers before starting the API.
+
 ## Satellite land analysis
 
 `POST /analyze-land` is a separate Sentinel Hub Statistical API integration; it

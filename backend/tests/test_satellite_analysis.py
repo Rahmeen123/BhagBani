@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import date, timedelta
 import json
 import os
@@ -20,6 +21,18 @@ from app.satellite_analysis.service import (
     SentinelHubServiceError,
     SentinelHubStatisticalService,
 )
+
+
+@asynccontextmanager
+async def test_lifespan():
+    with (
+        patch.object(
+            main.PlantRecommendationService, "load", return_value=object()
+        ),
+        patch.object(main.PlantHealthAnalyzer, "load", return_value=object()),
+    ):
+        async with main.lifespan(main.app):
+            yield
 
 
 def valid_request() -> LandAnalysisRequest:
@@ -236,7 +249,7 @@ class SatelliteApiTests(unittest.TestCase):
                     "app.satellite_analysis.router.logger.exception"
                 ) as log_exception,
             ):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",
@@ -266,7 +279,7 @@ class SatelliteApiTests(unittest.TestCase):
     def test_invalid_polygon_returns_422(self) -> None:
         async def make_request() -> httpx.Response:
             with patch.object(main.CropRecommender, "load", return_value=object()):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",

@@ -146,25 +146,29 @@ class _PlantPreferenceScreenState extends State<PlantPreferenceScreen> {
             ),
             if (_knowsSoil) ...[
               const SizedBox(height: 12),
-              DropdownButtonFormField<PlantSoilType>(
-                initialValue: _soilType ?? PlantSoilType.wellDrained,
-                decoration: const InputDecoration(
-                  labelText: 'Select your soil type',
-                  prefixIcon: Icon(Icons.grass_rounded, color: AppColors.muted),
-                ),
-                items: PlantSoilType.values
-                    .map(
-                      (soil) => DropdownMenuItem<PlantSoilType>(
-                        value: soil,
-                        child: Text(soil.label),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final soil in PlantSoilType.values)
+                    ChoiceChip(
+                      label: Text(soil.datasetValue),
+                      selected: _soilType == soil,
+                      selectedColor: AppColors.soft,
+                      labelStyle: TextStyle(
+                        color: _soilType == soil
+                            ? AppColors.primary
+                            : AppColors.dark,
+                        fontWeight: FontWeight.w600,
                       ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _soilType = value);
-                  }
-                },
+                      side: BorderSide(
+                        color: _soilType == soil
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
+                      onSelected: (_) => setState(() => _soilType = soil),
+                    ),
+                ],
               ),
             ],
             const SizedBox(height: 22),
@@ -223,8 +227,7 @@ class _QuestionHeader extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: requiredField
                       ? AppColors.gardenTint
