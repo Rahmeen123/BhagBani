@@ -23,9 +23,10 @@ class _FarmerListingScreenState extends State<FarmerListingScreen> {
 
   final List<String> _skillFilters = [
     'All',
-    'Crop Management',
-    'Irrigation',
+    'Crop Farming',
     'Tree Plantation',
+    'Irrigation Management',
+    'Farm Maintenance',
     'Pest Management',
     'Lahore',
     'Multan',

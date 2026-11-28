@@ -15,7 +15,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _name;
   late final TextEditingController _email;
   late final TextEditingController _phone;
+  late final TextEditingController _whatsapp;
   late final TextEditingController _location;
+  late final TextEditingController _address;
   bool _initialized = false;
 
   @override
@@ -26,7 +28,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _name = TextEditingController(text: user.name);
     _email = TextEditingController(text: user.email);
     _phone = TextEditingController(text: user.phone);
+    _whatsapp = TextEditingController(text: user.whatsappNumber);
     _location = TextEditingController(text: user.location);
+    _address = TextEditingController(text: user.address);
     _initialized = true;
   }
 
@@ -35,7 +39,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _name.dispose();
     _email.dispose();
     _phone.dispose();
+    _whatsapp.dispose();
     _location.dispose();
+    _address.dispose();
     super.dispose();
   }
 
@@ -43,10 +49,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!_form.currentState!.validate()) return;
     final previous = AuthScope.of(context).profile;
     final updated = UserProfile(
+      id: previous?.id ?? '',
       name: _name.text.trim(),
       email: _email.text.trim(),
       phone: _phone.text.trim(),
+      whatsappNumber: _whatsapp.text.trim(),
       location: _location.text.trim(),
+      address: _address.text.trim(),
       avatarPath: previous?.avatarPath,
       isGuest: false,
     );
@@ -139,7 +148,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             keyboard: TextInputType.phone,
           ),
           const SizedBox(height: 14),
+          _field(
+            _whatsapp,
+            'WhatsApp number (optional)',
+            Icons.chat_outlined,
+            keyboard: TextInputType.phone,
+            requiredField: false,
+          ),
+          const SizedBox(height: 14),
           _field(_location, 'City or location', Icons.location_on_outlined),
+          const SizedBox(height: 14),
+          _field(
+            _address,
+            'Address (optional)',
+            Icons.home_outlined,
+            requiredField: false,
+          ),
           const SizedBox(height: 24),
           PrimaryButton(label: 'Save Changes', onPressed: _save),
         ],
@@ -153,6 +177,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     IconData icon, {
     TextInputType? keyboard,
     bool email = false,
+    bool requiredField = true,
   }) => TextFormField(
     controller: controller,
     keyboardType: keyboard,
@@ -161,10 +186,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       prefixIcon: Icon(icon, color: AppColors.muted),
     ),
     validator: (value) {
-      if (value == null || value.trim().isEmpty) {
+      if (requiredField && (value == null || value.trim().isEmpty)) {
         return 'This field is required';
       }
-      if (email && (!value.contains('@') || !value.contains('.'))) {
+      if (email && value != null && (!value.contains('@') || !value.contains('.'))) {
         return 'Enter a valid email address';
       }
       return null;

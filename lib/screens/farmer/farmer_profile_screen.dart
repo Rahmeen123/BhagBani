@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../models/farmer.dart';
-import '../../navigation/protected_feature_navigation.dart';
-import '../../providers/auth_scope.dart';
-import '../../widgets/primary_button.dart';
-import '../auth/login_screen.dart';
-import 'hiring_request_screen.dart';
+import '../../widgets/direct_contact_card.dart';
 
 class FarmerProfileScreen extends StatelessWidget {
   const FarmerProfileScreen({super.key, required this.farmer});
@@ -14,9 +11,6 @@ class FarmerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = AuthScope.of(context);
-    final isGuest = auth.isGuest || (auth.profile?.isGuest ?? false);
-
     final initials = farmer.name
         .trim()
         .split(' ')
@@ -24,6 +18,8 @@ class FarmerProfileScreen extends StatelessWidget {
         .map((e) => e.isNotEmpty ? e[0] : '')
         .join()
         .toUpperCase();
+    final hasPhoto =
+        farmer.profileImage != null && farmer.profileImage!.startsWith('http');
 
     return Scaffold(
       backgroundColor: AppColors.cream,
@@ -33,9 +29,9 @@ class FarmerProfileScreen extends StatelessWidget {
         title: const Text('Farmer Profile'),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 6, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
         children: [
-          // Header Card with Avatar & Primary Info
+          // ── Personal Header Card ──────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -55,14 +51,18 @@ class FarmerProfileScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 46,
                   backgroundColor: AppColors.soft,
-                  child: Text(
-                    initials.isEmpty ? 'F' : initials,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  backgroundImage:
+                      hasPhoto ? NetworkImage(farmer.profileImage!) : null,
+                  child: hasPhoto
+                      ? null
+                      : Text(
+                          initials.isEmpty ? 'F' : initials,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 14),
                 Text(
@@ -77,7 +77,8 @@ class FarmerProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: AppColors.muted),
+                    const Icon(Icons.location_on_outlined,
+                        size: 16, color: AppColors.muted),
                     const SizedBox(width: 4),
                     Text(
                       farmer.location,
@@ -105,10 +106,13 @@ class FarmerProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     _statBox(
-                      icon: farmer.availability ? Icons.check_circle_outline : Icons.schedule,
-                      iconColor: farmer.availability ? AppColors.primary : Colors.orange,
-                      title: farmer.availability ? 'Available' : 'Busy',
-                      subtitle: 'Current Status',
+                      icon: farmer.availability
+                          ? Icons.check_circle_outline
+                          : Icons.schedule,
+                      iconColor:
+                          farmer.availability ? AppColors.primary : Colors.orange,
+                      title: farmer.availability ? 'Available' : 'Not Available',
+                      subtitle: 'Availability',
                     ),
                   ],
                 ),
@@ -117,50 +121,46 @@ class FarmerProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // About / Description Card
-          _infoCard(
-            title: 'About Farmer',
-            icon: Icons.person_outline_rounded,
-            child: Text(
-              farmer.description,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.dark,
-                height: 1.55,
+          // ── About / Description Card ──────────────────────────────────────
+          if (farmer.description.trim().isNotEmpty) ...[
+            _infoCard(
+              title: 'About Farmer',
+              icon: Icons.person_outline_rounded,
+              child: Text(
+                farmer.description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.dark,
+                  height: 1.55,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
-          // Farming Skills Card
+          // ── Skills Card ───────────────────────────────────────────────────
           _infoCard(
-            title: 'Farming Skills',
-            icon: Icons.psychology_outlined,
+            title: 'Skills',
+            icon: Icons.agriculture_outlined,
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: farmer.skills.map((skill) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: AppColors.cream,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        skill,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.dark,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    skill,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.dark,
+                    ),
                   ),
                 );
               }).toList(),
@@ -168,23 +168,25 @@ class FarmerProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Available Services Card
+          // ── Services Card ─────────────────────────────────────────────────
           _infoCard(
-            title: 'Available Services',
+            title: 'Services Offered',
             icon: Icons.handyman_outlined,
             child: Column(
               children: farmer.services.map((svc) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        width: 24,
+                        height: 24,
                         decoration: BoxDecoration(
-                          color: AppColors.nurseryTint,
+                          color: AppColors.soft,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.eco_rounded, size: 14, color: AppColors.primary),
+                        child: const Icon(Icons.eco_rounded,
+                            size: 14, color: AppColors.primary),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -205,7 +207,7 @@ class FarmerProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Rate & Working Terms Note
+          // ── Rate Card ─────────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -215,7 +217,8 @@ class FarmerProfileScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.payments_outlined, color: AppColors.primary, size: 24),
+                const Icon(Icons.payments_outlined,
+                    color: AppColors.primary, size: 24),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -239,33 +242,32 @@ class FarmerProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
+          const SizedBox(height: 20),
 
-      // Bottom Bar with "Hire Farmer" Button
-      bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          border: const Border(top: BorderSide(color: AppColors.border)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
+          // ── Contact Information Card ──────────────────────────────────────
+          const Text(
+            'Contact Information',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.dark,
             ),
-          ],
-        ),
-        child: PrimaryButton(
-          label: 'Hire Farmer',
-          icon: Icons.send_rounded,
-          onPressed: () => ProtectedFeatureNavigation.open(
-            context,
-            destination: (_) => HiringRequestScreen(farmer: farmer),
-            loginScreenBuilder: (destination) =>
-                LoginScreen(onAuthenticated: destination),
           ),
-        ),
+          const SizedBox(height: 10),
+          DirectContactCard(
+            roleLabel: 'Farmer',
+            name: farmer.name,
+            phoneNumber: farmer.phone,
+            whatsappNumber: farmer.effectiveWhatsapp,
+            address: farmer.effectiveAddress,
+            callButtonLabel: 'Call Farmer',
+            whatsAppButtonLabel: 'WhatsApp Farmer',
+            whatsAppMessage:
+                'Assalam-o-Alaikum ${farmer.name}, I saw your farmer profile on Baghbani.',
+            accentColor: AppColors.primary,
+            tintColor: AppColors.soft,
+          ),
+        ],
       ),
     );
   }
@@ -275,69 +277,74 @@ class FarmerProfileScreen extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String subtitle,
-  }) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.cream,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.dark,
-            ),
+  }) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: AppColors.cream,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: const TextStyle(fontSize: 11, color: AppColors.muted),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.dark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   Widget _infoCard({
     required String title,
     required IconData icon,
     required Widget child,
-  }) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: AppColors.borderLight),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  }) =>
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 19, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.dark,
-              ),
+            Row(
+              children: [
+                Icon(icon, size: 19, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.dark,
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            child,
           ],
         ),
-        const SizedBox(height: 12),
-        child,
-      ],
-    ),
-  );
+      );
 }

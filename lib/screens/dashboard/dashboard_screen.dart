@@ -495,14 +495,11 @@ class _HomeTab extends StatelessWidget {
                 icon: Icons.landscape_rounded,
                 tint: AppColors.farmTint,
                 iconColor: AppColors.farmAccent,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => const OfferLandLandingScreen(),
-                    ),
-                  );
-                },
+                showDivider: true,
+                onTap: () => _openProtected(
+                  context,
+                  (_) => const OfferLandLandingScreen(),
+                ),
               ),
               FeatureRowTile(
                 title: 'Find Land',
@@ -1119,9 +1116,6 @@ class _CommunityExploreTab extends StatelessWidget {
   const _CommunityExploreTab();
   @override
   Widget build(BuildContext context) {
-    final auth = AuthScope.of(context);
-    final isGuest = auth.isGuest || (auth.profile?.isGuest ?? false);
-
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(title: const Text('Grower Community')),
@@ -1181,7 +1175,7 @@ class _CommunityExploreTab extends StatelessWidget {
             title: 'Hire Farmer',
             subtitle: 'Find skilled farmers for your land',
             description:
-                'Browse verified growers, view ratings & skills, and send direct hiring requests.',
+                'Browse farmer profiles, inspect skills & availability, and call or WhatsApp directly.',
             tint: AppColors.communityTint,
             accent: AppColors.communityAccent,
             buttonText: 'Browse Farmers',
@@ -1201,7 +1195,7 @@ class _CommunityExploreTab extends StatelessWidget {
             title: 'Become a Farmer',
             subtitle: 'Offer your farming services',
             description:
-                'Register your skills, daily rates, and availability to receive work requests.',
+                'Register your skills, contact info, and availability so land owners can reach you directly.',
             tint: AppColors.soft,
             accent: AppColors.primary,
             buttonText: 'Register as Farmer',
@@ -1220,18 +1214,15 @@ class _CommunityExploreTab extends StatelessWidget {
             title: 'Offer a Land',
             subtitle: 'Add new land & manage listings',
             description:
-                'List your agricultural acreage, manage your listings, and review incoming farmer applications.',
+                'List your agricultural land with satellite boundaries and direct contact details.',
             tint: AppColors.farmTint,
             accent: AppColors.farmAccent,
             buttonText: 'Offer a Land',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const OfferLandLandingScreen(),
-                ),
-              );
-            },
+            onTap: () => ProtectedFeatureNavigation.open(
+              context,
+              destination: (_) => const OfferLandLandingScreen(),
+              loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -1241,7 +1232,7 @@ class _CommunityExploreTab extends StatelessWidget {
             title: 'Find Land',
             subtitle: 'Browse available farmland',
             description:
-                'Explore land listings and apply for farming opportunities that suit you.',
+                'Explore land listings, view farm boundaries on satellite map, and contact owners directly.',
             tint: AppColors.farmTint,
             accent: AppColors.farmAccent,
             buttonText: 'Browse Land',

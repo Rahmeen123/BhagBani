@@ -25,9 +25,17 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
   final _cropController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  String _selectedAreaUnit = 'Acres';
   String _selectedWaterSource = 'Canal Water';
   String _selectedPartnership = 'Crop Sharing';
+  bool _irrigationAvailable = true;
   bool _didInitialize = false;
+
+  final List<String> _areaUnits = [
+    'Acres',
+    'Kanal',
+    'Hectare',
+  ];
 
   final List<String> _waterSources = [
     'Canal Water',
@@ -55,10 +63,16 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
       _titleController.text = land.landName;
       _locationController.text = land.location;
       _acreageController.text = land.area.toString();
-      _soilTypeController.text = land.soilType;
+      _selectedAreaUnit =
+          _areaUnits.contains(land.areaUnit) ? land.areaUnit : 'Acres';
+      _soilTypeController.text =
+          land.soilType == 'Not specified' ? '' : land.soilType;
       _cropController.text = land.preferredCrop;
       _descriptionController.text = land.description;
-      _selectedWaterSource = land.waterSource;
+      _irrigationAvailable = land.irrigationAvailable;
+      if (_waterSources.contains(land.waterSource)) {
+        _selectedWaterSource = land.waterSource;
+      }
       return;
     }
     if (_locationController.text.isEmpty &&
@@ -91,9 +105,13 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
       title: _titleController.text.trim(),
       location: _locationController.text.trim(),
       estimatedAreaAcres: double.parse(_acreageController.text.trim()),
-      soilType: _soilTypeController.text.trim(),
+      areaUnit: _selectedAreaUnit,
+      soilType: _soilTypeController.text.trim().isEmpty
+          ? 'Not specified'
+          : _soilTypeController.text.trim(),
       preferredCrop: _cropController.text.trim(),
-      waterSource: _selectedWaterSource,
+      irrigationAvailable: _irrigationAvailable,
+      waterSource: _irrigationAvailable ? _selectedWaterSource : 'Rainfed',
       partnershipType: _selectedPartnership,
       description: _descriptionController.text.trim(),
       existingLand: widget.land,
@@ -191,16 +209,16 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
             ),
             const SizedBox(height: 18),
 
-            // Acreage
-            _label('Total Land Size (Acres)'),
+            // Acreage & Area Unit
+            _label('Land Area'),
             TextFormField(
               controller: _acreageController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
                 hintText: 'e.g. 12',
                 prefixIcon:
-                    Icon(Icons.square_foot_rounded, color: AppColors.muted),
-                suffixText: 'Acres',
+                    const Icon(Icons.square_foot_rounded, color: AppColors.muted),
+                suffixText: _selectedAreaUnit,
               ),
               validator: (v) {
                 final area = double.tryParse(v?.trim() ?? '');
@@ -208,18 +226,45 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: 12),
+
+            _label('Area Unit'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _areaUnits.map((unit) {
+                final isSelected = _selectedAreaUnit == unit;
+                return ChoiceChip(
+                  label: Text(unit),
+                  selected: isSelected,
+                  selectedColor: AppColors.farmAccent,
+                  backgroundColor: AppColors.white,
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppColors.dark,
+                  ),
+                  side: BorderSide(
+                    color: isSelected ? AppColors.farmAccent : AppColors.border,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (val) {
+                    if (val) setState(() => _selectedAreaUnit = unit);
+                  },
+                );
+              }).toList(),
+            ),
             const SizedBox(height: 20),
 
-            _label('Soil Type'),
+            _label('Soil Type (Optional)'),
             TextFormField(
               controller: _soilTypeController,
               decoration: const InputDecoration(
                 hintText: 'e.g. Loamy, alluvial, sandy',
                 prefixIcon: Icon(Icons.terrain_rounded, color: AppColors.muted),
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Enter the soil type'
-                  : null,
             ),
             const SizedBox(height: 18),
 
@@ -233,6 +278,37 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Enter a preferred crop'
                   : null,
+            ),
+            const SizedBox(height: 18),
+
+            // Irrigation Available Toggle
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Irrigation Available',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.dark,
+                  ),
+                ),
+                subtitle: Text(
+                  _irrigationAvailable
+                      ? 'Irrigation water source is available'
+                      : 'Rainfed / no active irrigation',
+                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                ),
+                value: _irrigationAvailable,
+                activeColor: AppColors.farmAccent,
+                onChanged: (val) => setState(() => _irrigationAvailable = val),
+              ),
             ),
             const SizedBox(height: 18),
 
@@ -416,7 +492,7 @@ class OfferLandLandingScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Connect with experienced farmers and manage applications for your agricultural land.',
+                        'Publish your agricultural land with farm boundaries and direct contact details for interested farmers.',
                         style: TextStyle(
                           color: AppColors.sageLight,
                           fontSize: 13.5,
@@ -474,9 +550,9 @@ class OfferLandLandingScreen extends StatelessWidget {
               context,
               icon: Icons.format_list_bulleted_rounded,
               title: 'My Land Listings',
-              subtitle: 'Manage your listings and applications',
+              subtitle: 'Manage your published listings',
               description:
-                  'View active listings, update details, close/reopen, and manage incoming applications.',
+                  'View active listings, update land details, boundary, contact info, or close/reopen availability.',
               tint: AppColors.soft,
               accent: AppColors.primary,
               buttonText: 'My Land Listings',

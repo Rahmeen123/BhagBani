@@ -44,18 +44,25 @@ class FarmerCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with soft green tint
+              // Avatar with photo or soft green tint initials
               CircleAvatar(
                 radius: 26,
                 backgroundColor: AppColors.soft,
-                child: Text(
-                  initials.isEmpty ? 'F' : initials,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
+                backgroundImage: farmer.profileImage != null &&
+                        farmer.profileImage!.startsWith('http')
+                    ? NetworkImage(farmer.profileImage!)
+                    : null,
+                child: farmer.profileImage != null &&
+                        farmer.profileImage!.startsWith('http')
+                    ? null
+                    : Text(
+                        initials.isEmpty ? 'F' : initials,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -192,7 +199,7 @@ class FarmerCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      farmer.availability ? 'Available' : 'Busy',
+                      farmer.availability ? 'Available' : 'Not Available',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,

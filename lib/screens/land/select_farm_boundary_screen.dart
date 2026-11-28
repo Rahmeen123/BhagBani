@@ -9,13 +9,11 @@ import '../../features/tree_recommendation/models/land_location.dart';
 import '../../features/tree_recommendation/services/location_service.dart';
 import '../../models/land.dart';
 import '../../models/land_coordinate.dart';
-import '../../models/land_offer.dart';
-import '../../providers/auth_scope.dart';
 import '../../services/land_service.dart';
 import '../../utils/land_geometry.dart';
 import '../../widgets/land_boundary_map.dart';
 import '../../widgets/primary_button.dart';
-import 'my_land_listings_screen.dart';
+import 'land_contact_info_screen.dart';
 
 /// Holds the land details entered on [OfferLandScreen] before boundary selection.
 class OfferLandDraft {
@@ -23,8 +21,10 @@ class OfferLandDraft {
     required this.title,
     required this.location,
     required this.estimatedAreaAcres,
+    this.areaUnit = 'Acres',
     required this.soilType,
     required this.preferredCrop,
+    this.irrigationAvailable = true,
     required this.waterSource,
     required this.partnershipType,
     required this.description,
@@ -34,8 +34,10 @@ class OfferLandDraft {
   final String title;
   final String location;
   final double estimatedAreaAcres;
+  final String areaUnit;
   final String soilType;
   final String preferredCrop;
+  final bool irrigationAvailable;
   final String waterSource;
   final String partnershipType;
   final String description;
@@ -73,7 +75,6 @@ class _SelectFarmBoundaryScreenState extends State<SelectFarmBoundaryScreen> {
   bool _isSearching = false;
   bool _isLocating = false;
   bool _isResolvingAddress = false;
-  bool _isSaving = false;
   String? _statusError;
   int _addressRequestId = 0;
 
@@ -273,7 +274,7 @@ class _SelectFarmBoundaryScreenState extends State<SelectFarmBoundaryScreen> {
     return null;
   }
 
-  Future<void> _saveListing() async {
+  Future<void> _continueToContactInfo() async {
     if (_points.length < 3) {
       setState(() {
         _statusError = 'Tap at least 3 points on the map to draw your farm boundary.';
@@ -281,7 +282,6 @@ class _SelectFarmBoundaryScreenState extends State<SelectFarmBoundaryScreen> {
       return;
     }
 
-    final user = AuthScope.of(context).profile;
     final center = _center!;
     final calculatedAcres = double.parse(_areaAcres.toStringAsFixed(2));
     final perimeter = double.parse(_perimeterMeters.toStringAsFixed(1));
@@ -289,131 +289,17 @@ class _SelectFarmBoundaryScreenState extends State<SelectFarmBoundaryScreen> {
         ? _addressController.text.trim()
         : widget.draft.location;
 
-    setState(() {
-      _isSaving = true;
-      _statusError = null;
-    });
-
-    try {
-      final existing = widget.draft.existingLand;
-      if (existing != null) {
-        await widget.landService.updateLand(
-          existing.copyWith(
-            landName: widget.draft.title,
-            location: address,
-            area: calculatedAcres,
-            areaUnit: 'Acres',
-            soilType: widget.draft.soilType,
-            waterSource: widget.draft.waterSource,
-            preferredCrop: widget.draft.preferredCrop,
-            description: widget.draft.description,
-            images: const [],
-            polygonCoordinates: List<LandCoordinate>.unmodifiable(_points),
-            centerLocation: center,
-            perimeterMeters: perimeter,
-          ),
-        );
-      } else {
-        final offer = LandOffer(
-          id: 'land_${DateTime.now().millisecondsSinceEpoch}',
-          userId: user?.email ?? '',
-          ownerName: user?.name ?? 'Land Owner',
-          title: widget.draft.title,
-          location: address,
-          acreage: '${calculatedAcres.toStringAsFixed(2)} Acres',
-          waterSource: widget.draft.waterSource,
-          partnershipType: widget.draft.partnershipType,
-          description: widget.draft.description,
-          createdAt: DateTime.now(),
-          soilType: widget.draft.soilType,
-          preferredCrop: widget.draft.preferredCrop,
-          polygonCoordinates: List<LandCoordinate>.unmodifiable(_points),
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => LandContactInfoScreen(
+          draft: widget.draft,
+          boundaryPoints: List<LandCoordinate>.unmodifiable(_points),
           centerLocation: center,
+          calculatedAreaAcres: calculatedAcres,
           perimeterMeters: perimeter,
-        );
-        await widget.landService.submitLandOffer(offer);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save land listing: $error')),
-      );
-      return;
-    }
-
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cream,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: AppColors.farmTint,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.landscape_rounded,
-                color: AppColors.farmAccent,
-                size: 36,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              widget.draft.existingLand == null
-                  ? 'Land Listed Successfully!'
-                  : 'Listing Updated Successfully!',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.dark,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.draft.existingLand == null
-                  ? 'Your farm boundary (${LandGeometry.formatAcres(calculatedAcres)}) and details are now visible to farmers in Find Land.'
-                  : 'Your farm boundary and land listing details have been updated.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13.5,
-                color: AppColors.muted,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 22),
-            PrimaryButton(
-              label: 'Done',
-              onPressed: () {
-                Navigator.pop(context); // close dialog
-                if (widget.draft.existingLand != null) {
-                  Navigator.pop(context); // close boundary screen
-                  Navigator.pop(context); // close edit form
-                } else {
-                  final ownerUserId =
-                      AuthScope.of(context).profile?.email ?? '';
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute<void>(
-                      builder: (_) => MyLandListingsScreen(
-                        ownerUserId: ownerUserId,
-                      ),
-                    ),
-                    (route) => route.isFirst,
-                  );
-                }
-              },
-            ),
-          ],
+          resolvedAddress: address,
+          landService: widget.landService,
         ),
       ),
     );
@@ -744,12 +630,9 @@ class _SelectFarmBoundaryScreenState extends State<SelectFarmBoundaryScreen> {
                   ],
                   const SizedBox(height: 12),
                   PrimaryButton(
-                    label: widget.draft.existingLand == null
-                        ? 'Save & Publish Land'
-                        : 'Save Listing Changes',
-                    icon: Icons.check_circle_rounded,
-                    busy: _isSaving,
-                    onPressed: _isSaving || !hasPolygon ? null : _saveListing,
+                    label: 'Add Contact Information',
+                    icon: Icons.contact_phone_outlined,
+                    onPressed: !hasPolygon ? null : _continueToContactInfo,
                   ),
                 ],
               ),

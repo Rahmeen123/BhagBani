@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/contact_information.dart';
 import '../models/land.dart';
 import '../models/land_application.dart';
 import '../models/land_coordinate.dart';
@@ -207,26 +208,37 @@ class LandService {
     required String description,
     required DateTime createdAt,
     required List<LandCoordinate> polygon,
-  }) =>
-      Land(
-        id: id,
-        ownerUserId: ownerUserId,
-        ownerName: ownerName,
-        landName: landName,
+  }) {
+    final index = int.tryParse(id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+    final samplePhone = '030$index ${4100200 + index * 111}';
+    return Land(
+      id: id,
+      ownerUserId: ownerUserId,
+      ownerName: ownerName,
+      landName: landName,
+      location: location,
+      area: area,
+      areaUnit: 'Acres',
+      soilType: soilType,
+      waterSource: waterSource,
+      preferredCrop: preferredCrop,
+      description: description,
+      images: const [],
+      status: 'Available',
+      createdAt: createdAt,
+      irrigationAvailable: waterSource.toLowerCase() != 'rain-fed',
+      polygonCoordinates: polygon,
+      centerLocation: LandGeometry.centerOf(polygon),
+      perimeterMeters: LandGeometry.perimeterMeters(polygon),
+      ownerContact: ContactInformation(
+        name: ownerName,
+        phoneNumber: samplePhone,
+        whatsappNumber: samplePhone,
+        address: 'Main Farm Gate, $location',
         location: location,
-        area: area,
-        areaUnit: 'Acres',
-        soilType: soilType,
-        waterSource: waterSource,
-        preferredCrop: preferredCrop,
-        description: description,
-        images: const [],
-        status: 'Available',
-        createdAt: createdAt,
-        polygonCoordinates: polygon,
-        centerLocation: LandGeometry.centerOf(polygon),
-        perimeterMeters: LandGeometry.perimeterMeters(polygon),
-      );
+      ),
+    );
+  }
 
   Future<List<LandOffer>> getLandOffers() async {
     final prefs = await SharedPreferences.getInstance();
@@ -253,7 +265,7 @@ class LandService {
       landName: offer.title,
       location: offer.location,
       area: resolvedArea,
-      areaUnit: 'Acres',
+      areaUnit: offer.areaUnit,
       soilType: offer.soilType,
       waterSource: offer.waterSource,
       preferredCrop: offer.preferredCrop,
@@ -261,6 +273,7 @@ class LandService {
       images: hasBoundary ? const [] : const [_sampleLandImage],
       status: 'Available',
       createdAt: offer.createdAt,
+      irrigationAvailable: offer.irrigationAvailable,
       polygonCoordinates: offer.polygonCoordinates,
       centerLocation: offer.centerLocation ??
           LandGeometry.centerOf(offer.polygonCoordinates),
@@ -268,6 +281,12 @@ class LandService {
           (hasBoundary
               ? LandGeometry.perimeterMeters(offer.polygonCoordinates)
               : null),
+      ownerContact: offer.ownerContact ??
+          ContactInformation(
+            name: offer.ownerName,
+            location: offer.location,
+            address: offer.location,
+          ),
     );
   }
 

@@ -1,3 +1,4 @@
+import 'contact_information.dart';
 import 'land_coordinate.dart';
 
 class LandOffer {
@@ -12,11 +13,14 @@ class LandOffer {
     required this.partnershipType,
     required this.description,
     required this.createdAt,
+    this.areaUnit = 'Acres',
     this.soilType = 'Not specified',
     this.preferredCrop = 'Mixed crops',
+    this.irrigationAvailable = true,
     this.polygonCoordinates = const [],
     this.centerLocation,
     this.perimeterMeters,
+    this.ownerContact,
   });
 
   final String id;
@@ -25,15 +29,18 @@ class LandOffer {
   final String title;
   final String location;
   final String acreage;
+  final String areaUnit;
   final String waterSource;
   final String partnershipType;
   final String description;
   final DateTime createdAt;
   final String soilType;
   final String preferredCrop;
+  final bool irrigationAvailable;
   final List<LandCoordinate> polygonCoordinates;
   final LandCoordinate? centerLocation;
   final double? perimeterMeters;
+  final ContactInformation? ownerContact;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -42,16 +49,19 @@ class LandOffer {
         'title': title,
         'location': location,
         'acreage': acreage,
+        'areaUnit': areaUnit,
         'waterSource': waterSource,
         'partnershipType': partnershipType,
         'description': description,
         'createdAt': createdAt.toIso8601String(),
         'soilType': soilType,
         'preferredCrop': preferredCrop,
+        'irrigationAvailable': irrigationAvailable,
         'polygonCoordinates':
             polygonCoordinates.map((point) => point.toJson()).toList(),
         if (centerLocation != null) 'centerLocation': centerLocation!.toJson(),
         if (perimeterMeters != null) 'perimeterMeters': perimeterMeters,
+        if (ownerContact != null) 'ownerContact': ownerContact!.toJson(),
       };
 
   factory LandOffer.fromJson(Map<String, dynamic> json) => LandOffer(
@@ -61,6 +71,7 @@ class LandOffer {
         title: json['title'] as String? ?? '',
         location: json['location'] as String? ?? '',
         acreage: json['acreage'] as String? ?? '',
+        areaUnit: json['areaUnit'] as String? ?? 'Acres',
         waterSource: json['waterSource'] as String? ?? '',
         partnershipType: json['partnershipType'] as String? ?? '',
         description: json['description'] as String? ?? '',
@@ -68,6 +79,7 @@ class LandOffer {
             DateTime.now(),
         soilType: json['soilType'] as String? ?? 'Not specified',
         preferredCrop: json['preferredCrop'] as String? ?? 'Mixed crops',
+        irrigationAvailable: json['irrigationAvailable'] as bool? ?? true,
         polygonCoordinates:
             (json['polygonCoordinates'] as List<dynamic>? ?? const [])
                 .whereType<Map>()
@@ -79,5 +91,9 @@ class LandOffer {
                 Map<String, dynamic>.from(json['centerLocation'] as Map))
             : null,
         perimeterMeters: (json['perimeterMeters'] as num?)?.toDouble(),
+        ownerContact: json['ownerContact'] is Map
+            ? ContactInformation.fromJson(
+                Map<String, dynamic>.from(json['ownerContact'] as Map))
+            : null,
       );
 }

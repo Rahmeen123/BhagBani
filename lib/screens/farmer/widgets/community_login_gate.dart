@@ -25,7 +25,7 @@ Future<bool> requireCommunityLogin(
   if (actionName == 'offer your land') {
     openCommunityFeature(
       context,
-      destination: (_) => const OfferLandLandingScreen(),
+      destination: (_) => const OfferLandScreen(),
     );
   } else if (actionName == 'view your land listings') {
     openCommunityFeature(

@@ -18,7 +18,7 @@ class MyLandListingsScreen extends StatefulWidget {
 
 class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
   final _service = LandService();
-  late Future<List<({Land land, int applications})>> _future;
+  late Future<List<Land>> _future;
 
   @override
   void initState() {
@@ -26,17 +26,7 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
     _future = _load();
   }
 
-  Future<List<({Land land, int applications})>> _load() async {
-    final lands = await _service.getLandsByOwner(widget.ownerUserId);
-    final result = <({Land land, int applications})>[];
-    for (final land in lands) {
-      result.add((
-        land: land,
-        applications: await _service.getApplicationCountForLand(land.id),
-      ));
-    }
-    return result;
-  }
+  Future<List<Land>> _load() => _service.getLandsByOwner(widget.ownerUserId);
 
   void _refresh() => setState(() => _future = _load());
 
@@ -78,7 +68,7 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
             ),
           ],
         ),
-        body: FutureBuilder<List<({Land land, int applications})>>(
+        body: FutureBuilder<List<Land>>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
@@ -116,7 +106,7 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Offer your land to start receiving applications from experienced farmers.',
+                        'Offer your land so experienced farmers can contact you directly.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.muted,
@@ -138,15 +128,14 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
               children: [
-                for (final item in listings)
-                  _listingCard(item.land, item.applications),
+                for (final land in listings) _listingCard(land),
               ],
             );
           },
         ),
       );
 
-  Widget _listingCard(Land land, int applicationCount) {
+  Widget _listingCard(Land land) {
     final isClosed = land.status.toLowerCase() == 'closed';
     final image = land.images.isEmpty ? null : land.images.first;
 
@@ -206,12 +195,12 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // 5. Status & 6. Total Applications
+                // 5. Status & Irrigation
                 Row(
                   children: [
                     _statusChip(isClosed ? 'Closed' : 'Available', isClosed),
                     const SizedBox(width: 8),
-                    _applicationsBadge(applicationCount),
+                    _irrigationChip(land.irrigationAvailable),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -279,7 +268,7 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
     );
   }
 
-  Widget _applicationsBadge(int count) {
+  Widget _irrigationChip(bool available) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -290,13 +279,13 @@ class _MyLandListingsScreenState extends State<MyLandListingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
-            Icons.people_outline_rounded,
+            Icons.water_drop_outlined,
             size: 13,
             color: AppColors.primary,
           ),
           const SizedBox(width: 4),
           Text(
-            'Total Applications: $count',
+            available ? 'Irrigation Available' : 'Rainfed',
             style: const TextStyle(
               color: AppColors.primary,
               fontSize: 12,

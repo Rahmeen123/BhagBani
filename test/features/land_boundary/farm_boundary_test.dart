@@ -2,11 +2,13 @@ import 'dart:math' as math;
 
 import 'package:baghbani/features/tree_recommendation/models/land_location.dart';
 import 'package:baghbani/features/tree_recommendation/services/location_service.dart';
+import 'package:baghbani/models/contact_information.dart';
 import 'package:baghbani/models/land.dart';
 import 'package:baghbani/models/land_coordinate.dart';
 import 'package:baghbani/models/land_offer.dart';
 import 'package:baghbani/models/user_profile.dart';
 import 'package:baghbani/providers/auth_scope.dart';
+import 'package:baghbani/screens/land/land_contact_info_screen.dart';
 import 'package:baghbani/screens/land/land_marketplace_screens.dart';
 import 'package:baghbani/screens/land/offer_land_screen.dart';
 import 'package:baghbani/screens/land/select_farm_boundary_screen.dart';
@@ -250,8 +252,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Confirm'), findsOneWidget);
 
-      // Save listing.
-      await tester.tap(find.text('Save & Publish Land'));
+      // Proceed to Add Contact Information -> Publish Land.
+      await tester.tap(find.text('Add Contact Information'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LandContactInfoScreen), findsOneWidget);
+      final contactFields = find.byType(TextFormField);
+      await tester.enterText(contactFields.at(2), '03001234567');
+      await tester.enterText(contactFields.at(3), 'Chak 12, Multan Road');
+
+      await tester.ensureVisible(find.text('Publish Land'));
+      await tester.tap(find.text('Publish Land'));
       await tester.pumpAndSettle();
 
       expect(find.text('Land Listed Successfully!'), findsOneWidget);
@@ -263,6 +274,8 @@ void main() {
       expect(savedLands.single.centerLocation, isNotNull);
       expect(savedLands.single.perimeterMeters, greaterThan(0));
       expect(savedLands.single.area, greaterThan(0));
+      expect(savedLands.single.ownerPhone, '03001234567');
+      expect(savedLands.single.ownerAddress, 'Chak 12, Multan Road');
     });
 
     testWidgets(
@@ -297,6 +310,12 @@ void main() {
         polygonCoordinates: polygon,
         centerLocation: LandGeometry.centerOf(polygon),
         perimeterMeters: LandGeometry.perimeterMeters(polygon),
+        ownerContact: const ContactInformation(
+          name: 'Chaudhry Riaz',
+          phoneNumber: '0300 5556677',
+          whatsappNumber: '0300 5556677',
+          address: 'Canal Bridge, Sheikhupura',
+        ),
       );
 
       await tester.pumpWidget(
@@ -321,6 +340,9 @@ void main() {
       expect(viewerConfig!.polygons, hasLength(1));
       expect(viewerConfig!.polygons.single.points, hasLength(4));
       expect(viewerConfig!.onTap, isNull); // Read-only view in Find Land.
+      expect(find.text('Call Owner'), findsOneWidget);
+      expect(find.text('WhatsApp Owner'), findsOneWidget);
+      expect(find.text('0300 5556677'), findsWidgets);
 
       // Toggle Normal -> Satellite.
       await tester.tap(find.text('Normal'));
