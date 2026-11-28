@@ -53,7 +53,7 @@ class PlantHealthApiService {
       );
     } on http.ClientException {
       throw const PlantHealthApiException(
-        'Could not connect to the plant health service.',
+        'Could not connect to the plant health service. Start the backend and try again.',
       );
     }
 

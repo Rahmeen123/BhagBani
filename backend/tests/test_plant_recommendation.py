@@ -219,6 +219,33 @@ class PlantHealthInterpretationTests(unittest.TestCase):
         self.assertEqual(low_confidence.message, LOW_CONFIDENCE_MESSAGE)
         self.assertEqual(low_confidence.confidence, 0.59)
 
+    def test_hugging_face_labels_keep_the_raw_top_tomato_disease(self):
+        result = PlantHealthAnalyzer.interpret_predictions(
+            plant_name="Tomato",
+            labels={
+                0: "Tomato with Bacterial Spot",
+                1: "Tomato Mosaic Virus",
+            },
+            probabilities=[0.8, 0.2],
+        )
+
+        self.assertEqual(result.status, "disease")
+        self.assertEqual(result.label, "Tomato With Bacterial Spot")
+        self.assertEqual(result.confidence, 0.8)
+
+    def test_hugging_face_healthy_plant_label_is_not_reported_as_disease(self):
+        result = PlantHealthAnalyzer.interpret_predictions(
+            plant_name="Tomato",
+            labels={
+                0: "Healthy Tomato Plant",
+                1: "Tomato Mosaic Virus",
+            },
+            probabilities=[0.99, 0.01],
+        )
+
+        self.assertEqual(result.status, "healthy")
+        self.assertEqual(result.label, "Healthy")
+
     def test_unsupported_plant_does_not_get_a_health_prediction(self):
         with self.assertRaisesRegex(ValueError, "not supported"):
             PlantHealthAnalyzer.interpret_predictions(

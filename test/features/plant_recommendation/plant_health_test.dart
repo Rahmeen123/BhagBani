@@ -51,4 +51,33 @@ void main() {
     expect(result.treatmentTips, ['Improve airflow.']);
     service.close();
   });
+
+  test('explains that the backend must be running when connection fails',
+      () async {
+    final service = PlantHealthApiService(
+      client: MockClient(
+        (_) async => throw http.ClientException('Connection refused'),
+      ),
+      baseUri: Uri.parse('http://localhost:8000'),
+    );
+
+    await expectLater(
+      service.analyze(
+        image: XFile.fromData(
+          Uint8List.fromList([1, 2, 3]),
+          name: 'tomato-leaf.jpg',
+          mimeType: 'image/jpeg',
+        ),
+        plantName: 'Tomato',
+      ),
+      throwsA(
+        isA<PlantHealthApiException>().having(
+          (error) => error.message,
+          'message',
+          contains('Start the backend'),
+        ),
+      ),
+    );
+    service.close();
+  });
 }

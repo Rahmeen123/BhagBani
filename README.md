@@ -5,8 +5,31 @@ Baghbani is a single-account Flutter app for agriculture, gardening, nurseries a
 ## Run locally
 
 1. Install Flutter and configure an Android, iOS, web or desktop target.
-2. Run flutter pub get.
-3. Run flutter run.
+2. In a terminal, change to `backend` and start the API (see
+   [`backend/README.md`](backend/README.md) for environment setup):
+
+   ```powershell
+   Set-Location backend
+   python -m pip install -r requirements.txt
+   python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
+
+   The first startup downloads the plant-health model and may take a while.
+   Wait for the server to finish startup, then confirm
+   `http://localhost:8000/docs` opens.
+3. In a second terminal, run `flutter pub get` and `flutter run`.
+
+Flutter Web uses `http://localhost:8000` for plant health by default. The
+Android emulator uses `http://10.0.2.2:8000`. For a physical Android device,
+set both API URLs to the computer's LAN address, for example:
+
+```powershell
+flutter run `
+  --dart-define=CROP_RECOMMENDATION_API_BASE_URL=http://192.168.1.10:8000 `
+  --dart-define=PLANT_HEALTH_API_BASE_URL=http://192.168.1.10:8000
+```
+
+Replace `192.168.1.10` with the development machine's LAN IP.
 
 ## Crop recommendations on Android
 

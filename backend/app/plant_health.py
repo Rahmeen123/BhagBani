@@ -73,24 +73,22 @@ class PlantHealthAnalyzer:
     ) -> PlantHealthAnalyzer:
         try:
             import torch
-            from torchvision import transforms
-            from transformers import AutoModelForImageClassification
-
-            processor = transforms.Compose(
-                [
-                    transforms.Resize((224, 224)),
-                    transforms.ToTensor(),
-                    transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406],
-                        std=[0.229, 0.224, 0.225],
-                    ),
-                ]
+            from transformers import (
+                AutoModelForImageClassification,
+                MobileNetV2ImageProcessor,
             )
+
+            processor = MobileNetV2ImageProcessor.from_pretrained(model_id)
             model = AutoModelForImageClassification.from_pretrained(model_id)
             raw_labels = model.config.id2label
             id2label = {
                 int(index): label for index, label in raw_labels.items()
             }
+            logger.info(
+                "Loaded plant-health model %s with id2label: %s",
+                model_id,
+                id2label,
+            )
             return cls(
                 processor=processor,
                 model=model,
@@ -132,14 +130,25 @@ class PlantHealthAnalyzer:
         except (UnidentifiedImageError, OSError, ValueError) as error:
             raise InvalidPlantImage("Upload a valid plant photo.") from error
 
-        inputs = {
-            "pixel_values": self._processor(image)
-            .unsqueeze(0)
-            .to(self._device)
-        }
+        inputs = self._processor(images=image, return_tensors="pt")
+        pixel_values = inputs["pixel_values"].to(self._device)
         with self._torch.inference_mode():
-            logits = self._model(**inputs).logits[0]
+            logits = self._model(pixel_values=pixel_values).logits[0]
             probabilities = self._torch.softmax(logits, dim=-1).cpu().tolist()
+
+        raw_top_ten = sorted(
+            enumerate(probabilities),
+            key=lambda item: item[1],
+            reverse=True,
+        )[:10]
+        logger.info(
+            "Plant-health raw top-10 softmax predictions before species "
+            "filtering: %s",
+            [
+                (index, self._id2label[index], probability)
+                for index, probability in raw_top_ten
+            ],
+        )
 
         return self.interpret_predictions(
             plant_name=plant_name,
@@ -194,10 +203,17 @@ class PlantHealthAnalyzer:
         label, confidence = matching[0]
 
         class_name = label.split("___", maxsplit=1)[-1]
-        display_label = " ".join(
-            class_name.replace("_", " ").replace(",", " ").split()
-        ).title()
-        is_healthy = class_name.casefold() == "healthy"
+        is_healthy = (
+            class_name.casefold() == "healthy"
+            or class_name.casefold().startswith("healthy ")
+        )
+        display_label = (
+            "Healthy"
+            if is_healthy
+            else " ".join(
+                class_name.replace("_", " ").replace(",", " ").split()
+            ).title()
+        )
         tips = (
             ["Continue the current care routine and monitor new growth."]
             if is_healthy
