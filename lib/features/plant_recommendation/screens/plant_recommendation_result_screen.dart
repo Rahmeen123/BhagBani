@@ -7,6 +7,7 @@ import '../models/plant_recommendation.dart';
 import '../repositories/plant_repository.dart';
 import '../services/plant_recommendation_service.dart';
 import '../widgets/plant_widgets.dart';
+import '../widgets/plant_health_action_button.dart';
 import 'plant_detail_screen.dart';
 
 class PlantRecommendationResultScreen extends StatefulWidget {
@@ -54,7 +55,8 @@ class _PlantRecommendationResultScreenState
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'We could not load the plant guide right now. Please try again.';
+        _error =
+            'We could not load the plant guide right now. Please try again.';
         _loading = false;
       });
     }
@@ -269,9 +271,9 @@ class _ResultsListView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Top ${recommendations.length} Recommended ${recommendations.length == 1 ? 'Plant' : 'Plants'}',
-            style: const TextStyle(
+          const Text(
+            'Recommended Plants',
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: AppColors.dark,
@@ -279,7 +281,7 @@ class _ResultsListView extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Ranked by how closely each plant fits your light and care routine.',
+            'Filtered to match your sunlight and care preferences.',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.muted,
@@ -386,68 +388,27 @@ class _PlantRecommendationCard extends StatelessWidget {
                           color: AppColors.muted,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.soft,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${recommendation.matchPercentage}% Match',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Why this plant is recommended:',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.dark,
+            _PlantFact(
+              label: 'Growth',
+              value: PlantRecommendationService.formatGrowthLabel(plant.growth),
+            ),
+            _PlantFact(
+              label: 'Soil',
+              value: PlantRecommendationService.formatSoilLabel(plant.soil),
+            ),
+            _PlantFact(label: 'Watering', value: plant.watering),
+            _PlantFact(
+              label: 'Fertilization',
+              value: PlantRecommendationService.formatFertilizationLabel(
+                plant.fertilizationType,
               ),
             ),
-            const SizedBox(height: 6),
-            for (final reason in recommendation.reasons)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Icon(
-                        Icons.check_rounded,
-                        size: 15,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        reason,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.muted,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             const SizedBox(height: 12),
             PrimaryButton(
               label: 'View Details',
@@ -456,9 +417,50 @@ class _PlantRecommendationCard extends StatelessWidget {
               borderRadius: 14,
               onPressed: onViewDetails,
             ),
+            if (plant.healthSupported) ...[
+              const SizedBox(height: 8),
+              PlantHealthActionButton(recommendation: recommendation),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+class _PlantFact extends StatelessWidget {
+  const _PlantFact({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 92,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12.5,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.dark,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }

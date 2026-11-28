@@ -14,12 +14,22 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from app.prediction import CropRecommender
+from app.plant_health import PlantHealthAnalyzer, router as plant_health_router
+from app.plant_recommendation import (
+    PlantRecommendationService,
+    router as plant_recommendation_router,
+)
 from app.satellite_analysis.router import router as satellite_analysis_router
 from app.weather import WeatherServiceError, fetch_weather
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 MODEL_DIR = Path(os.getenv("CROP_MODEL_DIR", BACKEND_DIR / "model"))
+PLANT_DATASET_PATH = (
+    BACKEND_DIR.parent
+    / "dataset for plant recommendation"
+    / "plants_clean.csv"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -100,6 +110,10 @@ class RecommendationResponse(BaseModel):
 async def lifespan(application: FastAPI):
     """Load model artifacts once per application process."""
     application.state.recommender = CropRecommender.load(MODEL_DIR)
+    application.state.plant_recommender = PlantRecommendationService.load(
+        PLANT_DATASET_PATH
+    )
+    application.state.plant_health_analyzer = PlantHealthAnalyzer.load()
     yield
 
 
@@ -113,16 +127,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(satellite_analysis_router)
+app.include_router(plant_recommendation_router)
+app.include_router(plant_health_router)
 
 cors_origins = [
     origin.strip()
     for origin in os.getenv("CORS_ORIGINS", "").split(",")
     if origin.strip()
 ]
-if cors_origins:
+cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX")
+if not cors_origins and "CORS_ORIGIN_REGEX" not in os.environ:
+    cors_origin_regex = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+if cors_origins or cors_origin_regex:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
+        allow_origin_regex=cors_origin_regex or None,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "Authorization"],
     )

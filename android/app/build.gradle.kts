@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,9 +7,28 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val localMapsApiKey = providers.provider {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (!localPropertiesFile.isFile) {
+        ""
+    } else {
+        val localProperties = Properties()
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+        localProperties.getProperty("MAPS_API_KEY").orEmpty()
+    }
+}
+
 val mapsApiKey = providers.gradleProperty("MAPS_API_KEY")
     .orElse(providers.environmentVariable("MAPS_API_KEY"))
+    .orElse(localMapsApiKey)
     .getOrElse("")
+
+if (mapsApiKey.isBlank()) {
+    logger.warn(
+        "MAPS_API_KEY is not configured. Google Maps will appear blank; set it in " +
+            "android/local.properties or the MAPS_API_KEY environment variable."
+    )
+}
 
 android {
     namespace = "com.baghbani.baghbani"

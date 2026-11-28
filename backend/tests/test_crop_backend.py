@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import date
 import json
 from pathlib import Path
@@ -30,6 +31,18 @@ from model.train_model import (
     build_pipeline,
     prepare_dataset,
 )
+
+
+@asynccontextmanager
+async def test_lifespan():
+    with (
+        patch.object(
+            main.PlantRecommendationService, "load", return_value=object()
+        ),
+        patch.object(main.PlantHealthAnalyzer, "load", return_value=object()),
+    ):
+        async with main.lifespan(main.app):
+            yield
 
 
 class DatasetPreparationTests(unittest.TestCase):
@@ -340,7 +353,7 @@ class ApiTests(unittest.TestCase):
             with patch.object(
                 main, "fetch_weather", new=AsyncMock(return_value=weather)
             ):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",
@@ -372,7 +385,7 @@ class ApiTests(unittest.TestCase):
             with patch.object(
                 main.CropRecommender, "load", return_value=object()
             ):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",
@@ -410,7 +423,7 @@ class ApiTests(unittest.TestCase):
                     ),
                 ),
             ):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",
@@ -451,7 +464,7 @@ class ApiTests(unittest.TestCase):
                     main, "fetch_weather", new=AsyncMock(return_value=weather)
                 ),
             ):
-                async with main.lifespan(main.app):
+                async with test_lifespan():
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=main.app),
                         base_url="http://test",

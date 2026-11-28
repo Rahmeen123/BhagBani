@@ -14,10 +14,17 @@ The Crop Recommendation entry in the dashboard opens a protected flow: after
 sign-in, the user returns to the feature intro, selects a farm on Google Maps,
 and receives the top three recommendations with weather details.
 
-Enable the Google Maps SDK for Android for your Google Cloud project, then set
-`MAPS_API_KEY` in the environment before launching the app. The key is injected
-by Gradle and is not stored in the repository. Restrict the key to this app's
-Android package and signing certificate.
+Enable the Google Maps SDK for Android and billing for your Google Cloud
+project. Put your key in the ignored `android/local.properties` file:
+
+```properties
+MAPS_API_KEY=your-restricted-android-maps-key
+```
+
+Gradle also accepts the `MAPS_API_KEY` environment variable or project
+Gradle property. The key is injected by Gradle and should not be committed.
+Restrict it to this app's Android package (`com.baghbani.baghbani`) and
+the signing certificate used by your build.
 
 The default API URL (`http://10.0.2.2:8000`) is for the Android emulator. For a
 physical Android device, use the development machine's LAN address and keep

@@ -26,17 +26,19 @@ void main() {
   group('PlantRepository and PlantRecommendationService', () {
     final service = PlantRecommendationService();
 
-    test('loads the full plants.csv dataset including cp1252 apostrophes',
+    test('loads deduplicated cleaned plants and preserves source names',
         () async {
       final plants = await PlantRepository().getPlants();
 
-      expect(plants, hasLength(596));
+      expect(plants, hasLength(387));
       final snakePlant = plants.firstWhere((p) => p.name == 'Snake Plant');
       expect(snakePlant.growth, 'slow');
       expect(snakePlant.soil, 'well-drained');
       expect(snakePlant.sunlight, 'indirect sunlight');
       expect(snakePlant.watering, 'Water when soil is dry');
       expect(snakePlant.fertilizationType, 'No');
+      expect(snakePlant.careLevel, 'Low');
+      expect(snakePlant.healthSupported, isFalse);
 
       expect(
         plants.any((p) => p.name == 'Devil’s Ivy'),
@@ -50,12 +52,13 @@ void main() {
 
     test('decodes mixed UTF-8 and Windows-1252 bytes cleanly', () {
       final bytes = Uint8List.fromList([
-        0x44, 0x65, 0x76, 0x69, 0x6C, 0x92, 0x73, 0x20, 0x49, 0x76, 0x79, // Devil’s Ivy
+        0x44, 0x65, 0x76, 0x69, 0x6C, 0x92, 0x73, 0x20, 0x49, 0x76,
+        0x79, // Devil’s Ivy
       ]);
       expect(PlantRepository.decodeCsvBytes(bytes), 'Devil’s Ivy');
     });
 
-    test('recommends top 5 unique plants and scores Snake Plant 95% when soil is skipped',
+    test('exactly filters sunlight and care without scoring or result caps',
         () async {
       final plants = await PlantRepository().getPlants();
       final results = service.recommend(
@@ -68,18 +71,24 @@ void main() {
         ),
       );
 
-      expect(results, hasLength(5));
+      expect(results.length, greaterThan(5));
       expect(
         results.map((r) => r.plant.name.toLowerCase()).toSet(),
-        hasLength(5),
+        hasLength(results.length),
       );
 
-      final snake = results.firstWhere((r) => r.plant.name == 'Snake Plant');
-      expect(snake.matchPercentage, 95);
-      expect(snake.easyName, 'Naag Phani / Sansevieria');
-      expect(snake.urduName, 'ناگ پھنی (سنیک پلانٹ)');
-      expect(snake.reasons, contains('Suitable for low light'));
-      expect(snake.reasons, contains('Requires less watering'));
+      expect(
+        results.map((r) => r.plant.name),
+        contains('Snake Plant'),
+      );
+      expect(
+        results.every(
+          (r) =>
+              r.plant.sunlight == 'indirect sunlight' &&
+              r.plant.careLevel == 'Low',
+        ),
+        isTrue,
+      );
 
       // Every plant in the CSV should resolve to an explicit Urdu & easy name.
       for (final plant in plants) {
@@ -92,8 +101,7 @@ void main() {
       }
     });
 
-    test('awards 100% when soil and growth also match, and never blocks on soil mismatch',
-        () {
+    test('applies optional soil and growth filters exactly', () {
       const samplePlants = [
         Plant(
           name: 'Snake Plant',
@@ -102,6 +110,7 @@ void main() {
           sunlight: 'indirect sunlight',
           watering: 'Water when soil is dry',
           fertilizationType: 'No',
+          careLevel: 'Low',
         ),
         Plant(
           name: 'ZZ Plant',
@@ -110,6 +119,7 @@ void main() {
           sunlight: 'indirect sunlight',
           watering: 'Water weekly',
           fertilizationType: 'Balanced',
+          careLevel: 'Regular',
         ),
       ];
 
@@ -123,11 +133,94 @@ void main() {
         ),
       );
 
-      expect(results, hasLength(2));
+      expect(results, hasLength(1));
       expect(results[0].plant.name, 'Snake Plant');
-      expect(results[0].matchPercentage, 100);
-      expect(results[1].plant.name, 'ZZ Plant');
-      expect(results[1].matchPercentage, 95);
+    });
+
+    test('relaxes growth, then soil, then adjacent care only when needed', () {
+      const samplePlants = [
+        Plant(
+          name: 'Sandy Fast',
+          growth: 'fast',
+          soil: 'sandy',
+          sunlight: 'full sunlight',
+          watering: 'Water weekly',
+          fertilizationType: 'Organic',
+          careLevel: 'Regular',
+        ),
+        Plant(
+          name: 'Sandy Slow',
+          growth: 'slow',
+          soil: 'sandy',
+          sunlight: 'full sunlight',
+          watering: 'Water weekly',
+          fertilizationType: 'Organic',
+          careLevel: 'Regular',
+        ),
+        Plant(
+          name: 'Loamy Moderate',
+          growth: 'moderate',
+          soil: 'loamy',
+          sunlight: 'full sunlight',
+          watering: 'Water weekly',
+          fertilizationType: 'Organic',
+          careLevel: 'Regular',
+        ),
+        Plant(
+          name: 'Adjacent Care',
+          growth: 'fast',
+          soil: 'acidic',
+          sunlight: 'full sunlight',
+          watering: 'Water weekly',
+          fertilizationType: 'Organic',
+          careLevel: 'Regular',
+        ),
+      ];
+
+      final growthFallback = service.recommend(
+        plants: samplePlants,
+        preferences: const PlantPreferences(
+          sunlight: SunlightPreference.fullSun,
+          watering: WateringPreference.regularCare,
+          soilType: PlantSoilType.sandy,
+          growth: GrowthPreference.moderateGrowing,
+        ),
+      );
+      expect(
+        growthFallback.map((recommendation) => recommendation.plant.name),
+        ['Sandy Fast', 'Sandy Slow'],
+      );
+
+      final soilFallback = service.recommend(
+        plants: samplePlants,
+        preferences: const PlantPreferences(
+          sunlight: SunlightPreference.fullSun,
+          watering: WateringPreference.regularCare,
+          soilType: PlantSoilType.moist,
+          growth: GrowthPreference.slowGrowing,
+        ),
+      );
+      expect(
+        soilFallback.map((recommendation) => recommendation.plant.name),
+        ['Sandy Fast', 'Sandy Slow', 'Loamy Moderate', 'Adjacent Care'],
+      );
+
+      final careFallback = service.recommend(
+        plants: samplePlants,
+        preferences: const PlantPreferences(
+          sunlight: SunlightPreference.fullSun,
+          watering: WateringPreference.lowCare,
+        ),
+      );
+      expect(
+        careFallback.map((recommendation) => recommendation.plant.name),
+        [
+          'Sandy Fast',
+          'Sandy Slow',
+          'Loamy Moderate',
+          'Adjacent Care',
+        ],
+      );
     });
 
     test('returns empty list when no plants match sunlight and watering', () {
@@ -259,7 +352,7 @@ void main() {
     });
 
     testWidgets(
-        'Authenticated user goes directly to form, skips optional soil, sees Top 5 results and Plant Details',
+        'Authenticated user selects options, sees exact results and Plant Details',
         (tester) async {
       await auth.register(
         const UserProfile(
@@ -289,49 +382,81 @@ void main() {
       expect(find.byType(PlantPreferenceScreen), findsOneWidget);
       expect(find.byType(LoginScreen), findsNothing);
 
-      // Soil dropdown is hidden by default ("No").
-      expect(find.text('Select your soil type'), findsNothing);
+      // Soil chips are hidden by default ("No").
+      expect(find.text('sandy'), findsNothing);
 
-      // Tapping "Yes" shows soil dropdown, tapping "No" hides it again.
+      // Tapping "Yes" shows soil chips, tapping "No" hides them again.
       await tester.ensureVisible(find.text('Yes'));
       await tester.tap(find.text('Yes'));
       await tester.pumpAndSettle();
-      expect(find.text('Select your soil type'), findsOneWidget);
+      await tester.ensureVisible(find.text('sandy'));
+      expect(find.text('well-drained'), findsOneWidget);
+      expect(find.text('sandy'), findsOneWidget);
+      expect(find.text('loamy'), findsOneWidget);
+      expect(find.text('moist'), findsOneWidget);
+      expect(find.text('acidic'), findsOneWidget);
 
       await tester.tap(find.text('No'));
       await tester.pumpAndSettle();
-      expect(find.text('Select your soil type'), findsNothing);
+      expect(find.text('sandy'), findsNothing);
 
-      // Select Low Light + Low Care
+      await tester.ensureVisible(find.text('Moderate'));
+      expect(find.text('Moderate'), findsOneWidget);
+
+      // Select Low Light + Low care.
       await tester.ensureVisible(find.text('Low Light'));
       await tester.tap(find.text('Low Light'));
-      await tester.ensureVisible(find.text('Low Care'));
-      await tester.tap(find.text('Low Care'));
+      await tester.ensureVisible(find.text('Low'));
+      await tester.tap(find.text('Low'));
 
       await tester.ensureVisible(find.text('Get Recommendations'));
       await tester.tap(find.text('Get Recommendations'));
       await tester.pumpAndSettle();
 
       expect(find.byType(PlantRecommendationResultScreen), findsOneWidget);
-      expect(find.text('Top 5 Recommended Plants'), findsOneWidget);
+      expect(find.text('Recommended Plants'), findsWidgets);
       expect(find.text('Snake Plant'), findsOneWidget);
       expect(find.text('Naag Phani / Sansevieria'), findsOneWidget);
       expect(find.text('اردو نام: ناگ پھنی (سنیک پلانٹ)'), findsOneWidget);
-      expect(find.text('95% Match'), findsWidgets);
-      expect(find.text('View Details'), findsNWidgets(5));
+      expect(find.text('View Details'), findsWidgets);
+      expect(find.text('Check Health'), findsNothing);
 
       await tester.tap(find.text('View Details').first);
       await tester.pumpAndSettle();
 
       expect(find.byType(PlantDetailScreen), findsOneWidget);
-      expect(find.text('Common / Easy Name'), findsOneWidget);
-      expect(find.text('Urdu Name (اردو نام)'), findsOneWidget);
-      expect(find.text('Growth Type'), findsOneWidget);
       expect(find.text('Soil Requirement'), findsOneWidget);
-      expect(find.text('Sunlight Requirement'), findsOneWidget);
       expect(find.text('Watering Requirement'), findsOneWidget);
       expect(find.text('Fertilization Type'), findsOneWidget);
-      expect(find.text('Care Tips'), findsOneWidget);
+      expect(find.text('Growth Type'), findsNothing);
+      expect(find.text('Care Tips'), findsNothing);
+      expect(find.text('Check Health'), findsNothing);
+    });
+
+    testWidgets('supported plants expose the camera and gallery health action',
+        (tester) async {
+      final plants = await PlantRepository().getPlants();
+      final tomato = PlantRecommendationService()
+          .recommend(
+            plants: plants,
+            preferences: const PlantPreferences(
+              sunlight: SunlightPreference.fullSun,
+              watering: WateringPreference.regularCare,
+            ),
+          )
+          .firstWhere(
+              (recommendation) => recommendation.plant.name == 'Tomato');
+
+      expect(tomato.plant.healthSupported, isTrue);
+      await tester.pumpWidget(
+        MaterialApp(home: PlantDetailScreen(recommendation: tomato)),
+      );
+      await tester.ensureVisible(find.text('Check Health'));
+      await tester.tap(find.text('Check Health'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Camera'), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
     });
 
     testWidgets('Shows loading state and empty state when no plants match',

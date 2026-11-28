@@ -41,21 +41,24 @@ enum SunlightPreference {
 enum WateringPreference {
   lowCare(
     emoji: '💧',
-    title: 'Low Care',
+    title: 'Low',
     description: 'I can water occasionally',
     internalLabel: 'Low Water Requirement',
+    careLevel: 'Low',
   ),
   regularCare(
     emoji: '💧',
-    title: 'Regular Care',
+    title: 'Regular',
     description: 'I can water every few days',
     internalLabel: 'Medium Watering',
+    careLevel: 'Regular',
   ),
   highCare(
     emoji: '💧',
-    title: 'High Care',
+    title: 'High',
     description: 'I can water frequently',
     internalLabel: 'High Water Requirement',
+    careLevel: 'High',
   );
 
   const WateringPreference({
@@ -63,12 +66,14 @@ enum WateringPreference {
     required this.title,
     required this.description,
     required this.internalLabel,
+    required this.careLevel,
   });
 
   final String emoji;
   final String title;
   final String description;
   final String internalLabel;
+  final String careLevel;
 }
 
 /// Optional soil types supported by the plant dataset.
@@ -90,8 +95,9 @@ enum PlantSoilType {
 
 /// Optional growth speed preference.
 enum GrowthPreference {
-  fastGrowing(label: 'Fast Growing', datasetValue: 'fast'),
-  slowGrowing(label: 'Slow Growing', datasetValue: 'slow'),
+  fastGrowing(label: 'Fast', datasetValue: 'fast'),
+  moderateGrowing(label: 'Moderate', datasetValue: 'moderate'),
+  slowGrowing(label: 'Slow', datasetValue: 'slow'),
   noPreference(label: 'No Preference', datasetValue: null);
 
   const GrowthPreference({
@@ -117,4 +123,3 @@ class PlantPreferences {
   final PlantSoilType? soilType;
   final GrowthPreference growth;
 }
-
