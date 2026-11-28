@@ -45,7 +45,6 @@ abstract final class AppRoutes {
   static const offerLand = '/offer-land';
   static const findLand = '/find-land';
   static const myLandListings = '/my-land-listings';
-  static const myApplications = '/my-applications';
 
   // Nursery routes
   static const browsePlants = '/browse-plants';
@@ -79,9 +78,6 @@ abstract final class AppRoutes {
       findLand => const FindLandScreen(),
       myLandListings => MyLandListingsScreen(
           ownerUserId: settings.arguments as String? ?? '',
-        ),
-      myApplications => MyAppliedLandsScreen(
-          farmerUserId: settings.arguments as String? ?? '',
         ),
 
       // Nursery

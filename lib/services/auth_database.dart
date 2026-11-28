@@ -10,7 +10,7 @@ class AuthDatabase {
         _path = path;
 
   static const _databaseName = 'baghbani_users.db';
-  static const _version = 1;
+  static const _version = 2;
   final sqflite.DatabaseFactory? _factory;
   final String? _path;
   Future<sqflite.Database>? _opening;
@@ -36,9 +36,21 @@ class AuthDatabase {
               password_hash TEXT NOT NULL,
               phone TEXT NOT NULL,
               location TEXT NOT NULL,
+              whatsapp_number TEXT NOT NULL DEFAULT '',
+              address TEXT NOT NULL DEFAULT '',
               created_at TEXT NOT NULL
             )
           ''');
+        },
+        onUpgrade: (database, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await database.execute(
+              "ALTER TABLE users ADD COLUMN whatsapp_number TEXT NOT NULL DEFAULT ''",
+            );
+            await database.execute(
+              "ALTER TABLE users ADD COLUMN address TEXT NOT NULL DEFAULT ''",
+            );
+          }
         },
       ),
     );
@@ -52,6 +64,8 @@ class AuthDatabase {
       'password_hash': passwordHash,
       'phone': profile.phone.trim(),
       'location': profile.location.trim(),
+      'whatsapp_number': profile.whatsappNumber.trim(),
+      'address': profile.address.trim(),
       'created_at': DateTime.now().toUtc().toIso8601String(),
     };
     return database.transaction((transaction) async {
@@ -98,6 +112,8 @@ class AuthDatabase {
         'email': profile.email.trim().toLowerCase(),
         'phone': profile.phone.trim(),
         'location': profile.location.trim(),
+        'whatsapp_number': profile.whatsappNumber.trim(),
+        'address': profile.address.trim(),
       },
       where: 'id = ?',
       whereArgs: [id],
@@ -133,14 +149,20 @@ class AuthUserRecord {
   final UserProfile profile;
   final String passwordHash;
 
-  factory AuthUserRecord.fromMap(Map<String, Object?> row) => AuthUserRecord(
-        id: row['id']! as int,
-        profile: UserProfile(
-          name: row['name']! as String,
-          email: row['email']! as String,
-          phone: row['phone']! as String,
-          location: row['location']! as String,
-        ),
-        passwordHash: row['password_hash']! as String,
-      );
+  factory AuthUserRecord.fromMap(Map<String, Object?> row) {
+    final id = row['id']! as int;
+    return AuthUserRecord(
+      id: id,
+      profile: UserProfile(
+        id: id.toString(),
+        name: row['name']! as String,
+        email: row['email']! as String,
+        phone: row['phone']! as String,
+        location: row['location']! as String,
+        whatsappNumber: (row['whatsapp_number'] as String?) ?? '',
+        address: (row['address'] as String?) ?? '',
+      ),
+      passwordHash: row['password_hash']! as String,
+    );
+  }
 }

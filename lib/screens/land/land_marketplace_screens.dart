@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import '../../core/theme/app_theme.dart';
-import '../../models/farmer.dart';
 import '../../models/land.dart';
-import '../../models/land_application.dart';
 import '../../providers/auth_scope.dart';
-import '../../services/farmer_service.dart';
 import '../../services/land_service.dart';
+import '../../utils/land_geometry.dart';
+import '../../widgets/direct_contact_card.dart';
+import '../../widgets/land_boundary_map.dart';
 import '../../widgets/primary_button.dart';
-import 'applicant_profile_screen.dart';
-import '../farmer/widgets/community_login_gate.dart';
-import '../../navigation/protected_feature_navigation.dart';
-import '../auth/login_screen.dart';
 
 class FindLandScreen extends StatefulWidget {
   const FindLandScreen({super.key});
@@ -40,24 +38,6 @@ class _FindLandScreenState extends State<FindLandScreen> {
     super.dispose();
   }
 
-  void _openApplications() {
-    openCommunityFeature(
-      context,
-      destination: (_) => MyAppliedLandsScreen(
-        farmerUserId: AuthScope.of(context).profile?.email ?? '',
-      ),
-    );
-  }
-
-  void _openReceived() {
-    openCommunityFeature(
-      context,
-      destination: (_) => MyLandApplicationsScreen(
-        ownerUserId: AuthScope.of(context).profile?.email ?? '',
-      ),
-    );
-  }
-
   Future<void> _openLand(Land land) async {
     await Navigator.push<void>(
       context,
@@ -69,7 +49,9 @@ class _FindLandScreenState extends State<FindLandScreen> {
 
   bool _matches(Land land) {
     final query = _searchController.text.trim().toLowerCase();
-    if (query.isNotEmpty && !land.landName.toLowerCase().contains(query)) {
+    if (query.isNotEmpty &&
+        !land.landName.toLowerCase().contains(query) &&
+        !land.location.toLowerCase().contains(query)) {
       return false;
     }
     if (_location != null && land.location != _location) return false;
@@ -93,12 +75,7 @@ class _FindLandScreenState extends State<FindLandScreen> {
         backgroundColor: AppColors.cream,
         title: const Text('Find Land'),
         actions: [
-          if (!isGuest) ...[
-            IconButton(
-              tooltip: 'My applications',
-              onPressed: _openApplications,
-              icon: const Icon(Icons.assignment_outlined),
-            ),
+          if (!isGuest)
             IconButton(
               tooltip: 'My land listings',
               onPressed: () => Navigator.pushNamed(
@@ -108,12 +85,6 @@ class _FindLandScreenState extends State<FindLandScreen> {
               ),
               icon: const Icon(Icons.landscape_outlined),
             ),
-            IconButton(
-              tooltip: 'Applications received',
-              onPressed: _openReceived,
-              icon: const Icon(Icons.inbox_outlined),
-            ),
-          ],
         ],
       ),
       body: FutureBuilder<List<Land>>(
@@ -175,7 +146,7 @@ class _FindLandScreenState extends State<FindLandScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Explore farmland shared by owners and find the right opportunity.',
+                            'Explore farmland shared by owners, inspect boundaries, and contact owners directly.',
                             style: TextStyle(
                               fontSize: 12.5,
                               color: AppColors.muted,
@@ -193,7 +164,7 @@ class _FindLandScreenState extends State<FindLandScreen> {
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: 'Search land by name',
+                  hintText: 'Search land by name or location',
                   prefixIcon: Icon(Icons.search_rounded),
                 ),
               ),
@@ -268,60 +239,82 @@ class LandDetailScreen extends StatelessWidget {
     super.key,
     required this.land,
     required this.service,
+    this.mapBuilder,
   });
 
   final Land land;
   final LandService service;
-
-  void _apply(BuildContext context) {
-    final auth = AuthScope.of(context);
-    final isGuest =
-        auth.isGuest || !auth.isAuthenticated || (auth.profile?.isGuest ?? false);
-
-    if (isGuest) {
-      ProtectedFeatureNavigation.open(
-        context,
-        destination: (ctx) {
-          final profile = AuthScope.of(ctx).profile;
-          return ApplyLandScreen(
-            land: land,
-            service: service,
-            farmerUserId: profile?.email ?? '',
-            farmerName: profile?.name ?? 'Farmer',
-            farmerLocation: profile?.location ?? '',
-          );
-        },
-        loginScreenBuilder: (next) => LoginScreen(onAuthenticated: next),
-      );
-      return;
-    }
-
-    final profile = auth.profile;
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => ApplyLandScreen(
-          land: land,
-          service: service,
-          farmerUserId: profile?.email ?? '',
-          farmerName: profile?.name ?? 'Farmer',
-          farmerLocation: profile?.location ?? '',
-        ),
-      ),
-    );
-  }
+  final BoundaryMapBuilder? mapBuilder;
 
   @override
   Widget build(BuildContext context) {
+    final boundaryAcres = land.hasBoundary
+        ? LandGeometry.areaAcres(land.polygonCoordinates)
+        : land.area;
+
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-          backgroundColor: AppColors.cream, title: const Text('Land Details')),
+        backgroundColor: AppColors.cream,
+        title: const Text('Land Details'),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          _LandGallery(land: land, height: 230),
+          // ── Map Section ───────────────────────────────────────────────────
+          if (land.hasBoundary || land.centerLocation != null) ...[
+            LandBoundaryMap(
+              points: land.polygonCoordinates,
+              centerPoint: land.centerLocation,
+              editable: false,
+              initialMapType: MapType.satellite,
+              height: 260,
+              borderRadius: 22,
+              mapBuilder: mapBuilder,
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.satellite_alt_rounded,
+                    size: 18,
+                    color: AppColors.farmAccent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Selected Land Area: ${LandGeometry.formatAcres(boundaryAcres)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.dark,
+                      ),
+                    ),
+                  ),
+                  if (land.perimeterMeters != null && land.perimeterMeters! > 0)
+                    Text(
+                      LandGeometry.formatPerimeter(land.perimeterMeters!),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ] else
+            _LandGallery(land: land, height: 230),
           const SizedBox(height: 18),
+
+          // ── Land Information ──────────────────────────────────────────────
           Text(
             land.landName,
             style: const TextStyle(
@@ -333,408 +326,64 @@ class LandDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _DetailLine(icon: Icons.location_on_outlined, text: land.location),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               _InfoChip(
                 icon: Icons.square_foot_rounded,
-                text: _areaText(land),
+                text: 'Area: ${_areaText(land)}',
               ),
-              _InfoChip(icon: Icons.grass_rounded, text: land.preferredCrop),
               _InfoChip(
-                  icon: Icons.water_drop_outlined, text: land.waterSource),
-              _InfoChip(icon: Icons.terrain_rounded, text: land.soilType),
+                icon: Icons.grass_rounded,
+                text: 'Crop: ${land.preferredCrop}',
+              ),
+              _InfoChip(
+                icon: Icons.water_drop_outlined,
+                text:
+                    'Irrigation: ${land.irrigationAvailable ? 'Available' : 'Not Available'}',
+              ),
+              _InfoChip(
+                icon: Icons.opacity_rounded,
+                text: 'Water: ${land.waterSource}',
+              ),
+              _InfoChip(
+                icon: Icons.terrain_rounded,
+                text: 'Soil: ${land.soilType}',
+              ),
             ],
           ),
           const SizedBox(height: 22),
-          const _SectionTitle('About this land'),
+          const _SectionTitle('Land Description'),
           const SizedBox(height: 8),
           Text(
             land.description,
             style: const TextStyle(
-                color: AppColors.muted, fontSize: 14, height: 1.5),
-          ),
-          const SizedBox(height: 22),
-          const _SectionTitle('Land owner'),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: AppColors.farmTint,
-                  child: Icon(Icons.person_outline_rounded,
-                      color: AppColors.farmAccent),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    land.ownerName,
-                    style: const TextStyle(
-                      color: AppColors.dark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+              color: AppColors.muted,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 24),
-          PrimaryButton(label: 'Apply Now', onPressed: () => _apply(context)),
-        ],
-      ),
-    );
-  }
-}
 
-class ApplyLandScreen extends StatefulWidget {
-  const ApplyLandScreen({
-    super.key,
-    required this.land,
-    required this.service,
-    required this.farmerUserId,
-    required this.farmerName,
-    required this.farmerLocation,
-  });
-
-  final Land land;
-  final LandService service;
-  final String farmerUserId;
-  final String farmerName;
-  final String farmerLocation;
-
-  @override
-  State<ApplyLandScreen> createState() => _ApplyLandScreenState();
-}
-
-class _ApplyLandScreenState extends State<ApplyLandScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _introduction = TextEditingController();
-  final _suitability = TextEditingController();
-  final _experience = TextEditingController();
-  final _additional = TextEditingController();
-  bool _submitting = false;
-
-  @override
-  void dispose() {
-    _introduction.dispose();
-    _suitability.dispose();
-    _experience.dispose();
-    _additional.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_submitting) return;
-    if (widget.farmerUserId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to submit an application.')),
-      );
-      return;
-    }
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
-    final profile = AuthScope.of(context).profile;
-    final application = LandApplication(
-      id: 'application_${DateTime.now().microsecondsSinceEpoch}',
-      landId: widget.land.id,
-      ownerUserId: widget.land.ownerUserId,
-      farmerUserId: widget.farmerUserId,
-      farmerName: widget.farmerName,
-      location: widget.farmerLocation,
-      experience: _experience.text.trim(),
-      skills: _suitability.text.trim(),
-      farmerPhoto: profile?.avatarPath,
-      message: [
-        'Introduction: ${_introduction.text.trim()}',
-        'Why suitable: ${_suitability.text.trim()}',
-        'Experience: ${_experience.text.trim()}',
-        if (_additional.text.trim().isNotEmpty)
-          'Additional message: ${_additional.text.trim()}',
-      ].join('\n'),
-      status: LandApplication.pending,
-      createdAt: DateTime.now(),
-    );
-
-    try {
-      await widget.service.submitApplication(application);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Application submitted successfully.'),
-          backgroundColor: AppColors.farmAccent,
-        ),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute<void>(
-          builder: (_) => MyAppliedLandsScreen(
-            farmerUserId: widget.farmerUserId,
+          // ── Contact Section ───────────────────────────────────────────────
+          const _SectionTitle('Contact Owner'),
+          const SizedBox(height: 10),
+          DirectContactCard(
+            roleLabel: 'Land Owner',
+            name: land.ownerName,
+            phoneNumber: land.ownerPhone,
+            whatsappNumber: land.ownerWhatsapp,
+            address: land.ownerAddress,
+            callButtonLabel: 'Call Owner',
+            whatsAppButtonLabel: 'WhatsApp Owner',
+            whatsAppMessage:
+                'Assalam-o-Alaikum ${land.ownerName}, I saw your land "${land.landName}" on Baghbani.',
+            accentColor: AppColors.farmAccent,
+            tintColor: AppColors.farmTint,
           ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(error is StateError
-                ? error.message
-                : 'Could not submit application.')),
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      appBar: AppBar(
-          backgroundColor: AppColors.cream,
-          title: const Text('Apply for Land')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
-          children: [
-            Text(
-              'Apply for ${widget.land.landName}',
-              style: const TextStyle(
-                color: AppColors.dark,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 18),
-            _formField(
-              controller: _introduction,
-              label: 'Short introduction',
-              hint: 'Tell the owner a little about yourself',
-              validator: _required,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            _formField(
-              controller: _suitability,
-              label: 'Why are you suitable?',
-              hint: 'Share your relevant skills',
-              validator: _required,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            _formField(
-              controller: _experience,
-              label: 'Experience',
-              hint: 'e.g. 5 years growing rice and wheat',
-              validator: _required,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            _formField(
-              controller: _additional,
-              label: 'Additional message',
-              hint: 'Anything else you would like the owner to know',
-              maxLines: 3,
-              isRequired: false,
-            ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: _submitting ? 'Submitting...' : 'Submit Application',
-              onPressed: _submit,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class MyLandApplicationsScreen extends StatefulWidget {
-  const MyLandApplicationsScreen({
-    super.key,
-    required this.ownerUserId,
-    this.landId,
-  });
-  final String ownerUserId;
-  final String? landId;
-
-  @override
-  State<MyLandApplicationsScreen> createState() =>
-      _MyLandApplicationsScreenState();
-}
-
-class _MyLandApplicationsScreenState extends State<MyLandApplicationsScreen> {
-  final _service = LandService();
-  late Future<List<({Land land, LandApplication application})>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _service.getApplicationsForOwner(
-      widget.ownerUserId,
-      landId: widget.landId,
-    );
-  }
-
-  Future<void> _update(String applicationId, String status) async {
-    try {
-      await _service.updateApplicationStatus(
-        applicationId,
-        status,
-        ownerUserId: widget.ownerUserId,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not update application: $error')),
-      );
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _future = _service.getApplicationsForOwner(
-        widget.ownerUserId,
-        landId: widget.landId,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      appBar: AppBar(
-          backgroundColor: AppColors.cream,
-          title: const Text('Applications Received')),
-      body: FutureBuilder<List<({Land land, LandApplication application})>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _LoadMessage(
-              icon: Icons.cloud_off_outlined,
-              title: 'Could not load applications',
-              detail: snapshot.error.toString(),
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data!.isEmpty) {
-            return const _LoadMessage(
-              icon: Icons.inbox_outlined,
-              title: 'No applications yet',
-              detail: 'Applications for your land will appear here.',
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              for (final item in snapshot.data!)
-                _ReceivedApplicationCard(
-                  land: item.land,
-                  application: item.application,
-                  onViewProfile: () => Navigator.push<void>(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => ApplicantProfileScreen(
-                        application: item.application,
-                      ),
-                    ),
-                  ),
-                  onAccept: item.application.status == LandApplication.pending
-                      ? () =>
-                          _update(item.application.id, LandApplication.accepted)
-                      : null,
-                  onReject: item.application.status == LandApplication.pending
-                      ? () =>
-                          _update(item.application.id, LandApplication.rejected)
-                      : null,
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class MyAppliedLandsScreen extends StatefulWidget {
-  const MyAppliedLandsScreen({super.key, required this.farmerUserId});
-  final String farmerUserId;
-
-  @override
-  State<MyAppliedLandsScreen> createState() => _MyAppliedLandsScreenState();
-}
-
-class _MyAppliedLandsScreenState extends State<MyAppliedLandsScreen> {
-  final _service = LandService();
-  late Future<List<({Land land, LandApplication application})>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
-
-  Future<List<({Land land, LandApplication application})>> _load() async {
-    final applications =
-        await _service.getApplicationsByFarmer(widget.farmerUserId);
-    final lands = await _service.getLands();
-    final landById = {for (final land in lands) land.id: land};
-    return applications
-        .where((application) => landById.containsKey(application.landId))
-        .map((application) => (
-              land: landById[application.landId]!,
-              application: application,
-            ))
-        .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      appBar: AppBar(
-          backgroundColor: AppColors.cream,
-          title: const Text('My Applied Lands')),
-      body: FutureBuilder<List<({Land land, LandApplication application})>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _LoadMessage(
-              icon: Icons.cloud_off_outlined,
-              title: 'Could not load your applications',
-              detail: snapshot.error.toString(),
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data!.isEmpty) {
-            return const _LoadMessage(
-              icon: Icons.assignment_outlined,
-              title: 'No applications yet',
-              detail: 'Land applications you submit will appear here.',
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              for (final item in snapshot.data!)
-                _AppliedLandCard(
-                    land: item.land, application: item.application),
-            ],
-          );
-        },
+        ],
       ),
     );
   }
@@ -757,7 +406,14 @@ class _LandCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LandImage(land: land, height: 174),
+          if (land.hasBoundary)
+            LandBoundaryPreview(
+              points: land.polygonCoordinates,
+              height: 174,
+              badgeText: '${_areaText(land)} • Farm Boundary',
+            )
+          else
+            _LandImage(land: land, height: 174),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -784,8 +440,11 @@ class _LandCard extends StatelessWidget {
                     _InfoChip(
                         icon: Icons.grass_rounded, text: land.preferredCrop),
                     _InfoChip(
-                        icon: Icons.water_drop_outlined,
-                        text: land.waterSource),
+                      icon: Icons.water_drop_outlined,
+                      text: land.irrigationAvailable
+                          ? 'Irrigation: ${land.waterSource}'
+                          : 'Irrigation: Not Available',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -874,255 +533,6 @@ class _LandGallery extends StatelessWidget {
           height: height,
           imageOverride: land.images[index],
         ),
-      ),
-    );
-  }
-}
-
-class _ReceivedApplicationCard extends StatelessWidget {
-  const _ReceivedApplicationCard({
-    required this.land,
-    required this.application,
-    required this.onViewProfile,
-    required this.onAccept,
-    required this.onReject,
-  });
-  final Land land;
-  final LandApplication application;
-  final VoidCallback onViewProfile;
-  final VoidCallback? onAccept;
-  final VoidCallback? onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _ApplicantAvatar(
-                userId: application.farmerUserId,
-                name: application.farmerName,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(land.landName,
-                        style: const TextStyle(
-                            color: AppColors.muted, fontSize: 12)),
-                    const SizedBox(height: 3),
-                    Text(
-                      application.farmerName,
-                      style: const TextStyle(
-                          color: AppColors.dark,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _DetailLine(
-              icon: Icons.work_outline_rounded, text: application.experience),
-          if (application.skills.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            _DetailLine(icon: Icons.stars_outlined, text: application.skills),
-          ],
-          if (application.location.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            _DetailLine(
-                icon: Icons.location_on_outlined, text: application.location),
-          ],
-          const SizedBox(height: 10),
-          _DetailLine(
-            icon: Icons.calendar_today_outlined,
-            text: 'Applied ${_dateText(application.createdAt)}',
-          ),
-          const SizedBox(height: 10),
-          _StatusBadge(status: application.status),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: onViewProfile,
-            icon: const Icon(Icons.person_outline_rounded),
-            label: const Text('View Profile'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              minimumSize: const Size.fromHeight(44),
-              side: const BorderSide(color: AppColors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-          if (onAccept != null || onReject != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: PrimaryButton(
-                    label: 'Accept',
-                    onPressed: () {
-                      if (onAccept != null) onAccept!();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: PrimaryButton(
-                    label: 'Reject',
-                    outlined: true,
-                    onPressed: () {
-                      if (onReject != null) onReject!();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ApplicantAvatar extends StatefulWidget {
-  const _ApplicantAvatar({required this.userId, required this.name});
-
-  final String userId;
-  final String name;
-
-  @override
-  State<_ApplicantAvatar> createState() => _ApplicantAvatarState();
-}
-
-class _ApplicantAvatarState extends State<_ApplicantAvatar> {
-  late final Future<Farmer?> _farmer = _load();
-
-  Future<Farmer?> _load() async {
-    final farmers = await FarmerService().getFarmers();
-    for (final farmer in farmers) {
-      if (farmer.userId == widget.userId) return farmer;
-    }
-    return null;
-  }
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<Farmer?>(
-        future: _farmer,
-        builder: (context, snapshot) {
-          final image = snapshot.data?.profileImage;
-          final validImage = image != null && image.startsWith('http');
-          return CircleAvatar(
-            backgroundColor: AppColors.farmTint,
-            backgroundImage: validImage ? NetworkImage(image) : null,
-            child: validImage
-                ? null
-                : Text(
-                    widget.name.isEmpty ? 'F' : widget.name[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.farmAccent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-          );
-        },
-      );
-}
-
-class _AppliedLandCard extends StatelessWidget {
-  const _AppliedLandCard({required this.land, required this.application});
-  final Land land;
-  final LandApplication application;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(land.landName,
-              style: const TextStyle(
-                  color: AppColors.dark,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 7),
-          _DetailLine(
-              icon: Icons.person_outline_rounded,
-              text: 'Owner: ${land.ownerName}'),
-          const SizedBox(height: 6),
-          _DetailLine(icon: Icons.location_on_outlined, text: land.location),
-          const SizedBox(height: 10),
-          _DetailLine(
-            icon: Icons.calendar_today_outlined,
-            text: 'Applied ${_dateText(application.createdAt)}',
-          ),
-          const SizedBox(height: 10),
-          _StatusBadge(status: application.status),
-          if (application.status == LandApplication.accepted) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.farmTint,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Text(
-                'Congratulations!\nYour application has been accepted.',
-                style: TextStyle(
-                  color: AppColors.dark,
-                  fontWeight: FontWeight.w600,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = status == LandApplication.accepted
-        ? AppColors.farmAccent
-        : status == LandApplication.rejected
-            ? Colors.red
-            : AppColors.communityAccent;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style:
-            TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1248,45 +658,5 @@ Widget _filter<T>({
   );
 }
 
-Widget _formField({
-  required TextEditingController controller,
-  required String label,
-  required String hint,
-  String? Function(String?)? validator,
-  int maxLines = 1,
-  bool isRequired = true,
-}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          label,
-          style: const TextStyle(
-              color: AppColors.dark, fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-      ),
-      TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        decoration: InputDecoration(hintText: hint),
-        validator: validator ??
-            (isRequired
-                ? (value) => value == null || value.trim().isEmpty
-                    ? 'This field is required'
-                    : null
-                : null),
-      ),
-    ],
-  );
-}
-
-String? _required(String? value) =>
-    value == null || value.trim().isEmpty ? 'This field is required' : null;
-
 String _areaText(Land land) =>
     '${land.area % 1 == 0 ? land.area.toInt() : land.area} ${land.areaUnit}';
-
-String _dateText(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';

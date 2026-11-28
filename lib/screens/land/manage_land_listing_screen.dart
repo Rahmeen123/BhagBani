@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/land.dart';
 import '../../services/land_service.dart';
-import '../../widgets/primary_button.dart';
-import 'land_applications_screen.dart';
+import '../../utils/land_geometry.dart';
+import '../../widgets/land_boundary_map.dart';
 import 'offer_land_screen.dart';
 
 class ManageLandListingScreen extends StatefulWidget {
@@ -25,21 +26,11 @@ class ManageLandListingScreen extends StatefulWidget {
 class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
   final _service = LandService();
   late Land _land;
-  late Future<int> _countFuture;
 
   @override
   void initState() {
     super.initState();
     _land = widget.land;
-    _countFuture = _loadCount();
-  }
-
-  Future<int> _loadCount() => _service.getApplicationCountForLand(_land.id);
-
-  void _refresh() {
-    setState(() {
-      _countFuture = _loadCount();
-    });
   }
 
   Future<void> _editListing() async {
@@ -56,10 +47,8 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
       setState(() {
         _land = current.first;
       });
-      _refresh();
     } else if (updated != null && mounted) {
       setState(() => _land = updated);
-      _refresh();
     }
   }
 
@@ -102,7 +91,7 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
           style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.dark),
         ),
         content: const Text(
-          'This will permanently delete this land listing and all farmer applications submitted for it. This action cannot be undone.',
+          'This will permanently delete this land listing. This action cannot be undone.',
           style: TextStyle(fontSize: 13.5, color: AppColors.muted, height: 1.4),
         ),
         actions: [
@@ -139,18 +128,6 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
     }
   }
 
-  void _openApplications() {
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => LandApplicationsScreen(
-          land: _land,
-          ownerUserId: widget.ownerUserId,
-        ),
-      ),
-    ).then((_) => _refresh());
-  }
-
   @override
   Widget build(BuildContext context) {
     final isClosed = _land.status.toLowerCase() == 'closed';
@@ -166,19 +143,29 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
         children: [
-          // Land Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: image != null && image.startsWith('http')
-                ? Image.network(
-                    image,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholderImage(),
-                  )
-                : _placeholderImage(),
-          ),
+          // Farm Boundary Map or fallback placeholder
+          if (_land.hasBoundary || _land.centerLocation != null)
+            LandBoundaryMap(
+              points: _land.polygonCoordinates,
+              centerPoint: _land.centerLocation,
+              editable: false,
+              initialMapType: MapType.satellite,
+              height: 220,
+              borderRadius: 22,
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: image != null && image.startsWith('http')
+                  ? Image.network(
+                      image,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholderImage(),
+                    )
+                  : _placeholderImage(),
+            ),
           const SizedBox(height: 18),
 
           // Land Name and Status
@@ -234,6 +221,12 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
                 text:
                     '${_land.area % 1 == 0 ? _land.area.toInt() : _land.area} ${_land.areaUnit}',
               ),
+              if (_land.perimeterMeters != null && _land.perimeterMeters! > 0)
+                _infoChip(
+                  icon: Icons.straighten_rounded,
+                  text:
+                      'Perimeter: ${LandGeometry.formatPerimeter(_land.perimeterMeters!)}',
+                ),
               _infoChip(
                 icon: Icons.grass_rounded,
                 text: _land.preferredCrop,
@@ -250,104 +243,39 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Applications Button with Badge
-          FutureBuilder<int>(
-            future: _countFuture,
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.borderLight),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(22),
-                    onTap: _openApplications,
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: AppColors.farmTint,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.people_alt_outlined,
-                              color: AppColors.farmAccent,
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Applications',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.dark,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  count == 0
-                                      ? 'No farmer applications yet'
-                                      : '$count ${count == 1 ? 'farmer applied for this land' : 'farmers applied for this land'}',
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    color: AppColors.muted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Badge showing total count
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.farmAccent,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text(
-                              '$count',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 14,
-                            color: AppColors.muted,
-                          ),
-                        ],
-                      ),
-                    ),
+          // Direct Contact Summary Card
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Published Contact Information',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.dark,
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 10),
+                _contactInfoRow(Icons.person_outline_rounded, _land.ownerName),
+                if (_land.ownerPhone.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _contactInfoRow(Icons.phone_outlined, _land.ownerPhone),
+                ],
+                if (_land.ownerWhatsapp.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _contactInfoRow(Icons.chat_outlined, _land.ownerWhatsapp),
+                ],
+                const SizedBox(height: 6),
+                _contactInfoRow(Icons.home_outlined, _land.ownerAddress),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
 
@@ -446,6 +374,19 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
       ),
     );
   }
+
+  Widget _contactInfoRow(IconData icon, String value) => Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.farmAccent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13.5, color: AppColors.dark),
+            ),
+          ),
+        ],
+      );
 
   Widget _placeholderImage() => Container(
         height: 200,

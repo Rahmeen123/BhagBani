@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/contact_information.dart';
 import '../../models/farmer.dart';
 import '../../providers/auth_scope.dart';
 import '../../services/farmer_service.dart';
@@ -16,14 +17,19 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
   final _form = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _whatsappController = TextEditingController();
   final _experienceController = TextEditingController();
   final _servicesController = TextEditingController();
   final _aboutMeController = TextEditingController();
   final _rateController = TextEditingController(text: 'Rs. 2,000 / day');
   final _farmerService = FarmerService();
 
+  String? _selectedAvatarUrl;
   bool _isAvailable = true;
   bool _isSubmitting = false;
+  bool _initialized = false;
 
   final Map<String, bool> _skills = {
     'Crop Farming': true,
@@ -36,27 +42,87 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
     final user = AuthScope.of(context).profile;
-    if (_nameController.text.isEmpty && user?.name != null && !user!.isGuest) {
+    if (user != null && !user.isGuest) {
       _nameController.text = user.name;
-    }
-    if (_locationController.text.isEmpty && user?.location != null && !user!.isGuest) {
       _locationController.text = user.location;
+      _addressController.text =
+          user.address.isNotEmpty ? user.address : user.location;
+      if (user.phone != 'Not provided') {
+        _phoneController.text = user.phone;
+      }
+      _whatsappController.text = user.whatsappNumber;
+      _selectedAvatarUrl = user.avatarPath;
     }
-    if (_servicesController.text.isEmpty) {
-      _servicesController.text = 'Field Preparation, Sowing, Crop Management';
-    }
+    _servicesController.text = 'Field Preparation, Sowing, Crop Management';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _whatsappController.dispose();
     _experienceController.dispose();
     _servicesController.dispose();
     _aboutMeController.dispose();
     _rateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAvatarUrl() async {
+    final controller = TextEditingController(text: _selectedAvatarUrl ?? '');
+    final chosen = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text(
+          'Profile Picture',
+          style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.dark),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter an image URL for your profile photo (optional), or leave blank to use your initials avatar.',
+              style: TextStyle(fontSize: 13, color: AppColors.muted),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Profile Photo URL',
+                hintText: 'https://...',
+                prefixIcon: Icon(Icons.link_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Clear'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (chosen != null && mounted) {
+      setState(() => _selectedAvatarUrl = chosen.isEmpty ? null : chosen);
+    }
   }
 
   Future<void> _submitProfile() async {
@@ -81,6 +147,11 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
 
     final auth = AuthScope.of(context);
     final user = auth.profile;
+    final name = _nameController.text.trim();
+    final location = _locationController.text.trim();
+    final address = _addressController.text.trim();
+    final phone = _phoneController.text.trim();
+    final whatsapp = _whatsappController.text.trim();
     final expYears = int.tryParse(_experienceController.text.trim()) ?? 1;
 
     final parsedServices = _servicesController.text
@@ -89,11 +160,20 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
         .where((s) => s.isNotEmpty)
         .toList();
 
+    final contactInfo = ContactInformation(
+      name: name,
+      phoneNumber: phone,
+      whatsappNumber: whatsapp.isNotEmpty ? whatsapp : phone,
+      address: address,
+      location: location,
+    );
+
     final newFarmer = Farmer(
       id: 'farmer_${DateTime.now().millisecondsSinceEpoch}',
       userId: user?.email ?? 'usr_${DateTime.now().millisecondsSinceEpoch}',
-      name: _nameController.text.trim(),
-      location: _locationController.text.trim(),
+      name: name,
+      location: location,
+      address: address,
       experienceYears: expYears,
       skills: selectedSkills,
       services: parsedServices.isNotEmpty
@@ -105,8 +185,13 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
       dailyRate: _rateController.text.trim().isNotEmpty
           ? _rateController.text.trim()
           : 'Rs. 2,000 / day',
-      phone: user?.phone ?? '0300 1234567',
-      description: _aboutMeController.text.trim(),
+      phone: phone,
+      whatsapp: whatsapp.isNotEmpty ? whatsapp : phone,
+      profileImage: _selectedAvatarUrl,
+      contactInformation: contactInfo,
+      description: _aboutMeController.text.trim().isNotEmpty
+          ? _aboutMeController.text.trim()
+          : 'Experienced farmer offering ${selectedSkills.join(', ')} in $location.',
     );
 
     await _farmerService.addFarmer(newFarmer);
@@ -130,7 +215,8 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                 color: AppColors.soft,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.verified_rounded, color: AppColors.primary, size: 36),
+              child: const Icon(Icons.verified_rounded,
+                  color: AppColors.primary, size: 36),
             ),
             const SizedBox(height: 18),
             const Text(
@@ -143,9 +229,10 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your farmer profile is now active on Baghbani. It will now appear in the Hire Farmer directory for land owners seeking services.',
+              'Your farmer profile is now visible in Hire Farmer. Land owners can call or WhatsApp you directly.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.5, color: AppColors.muted, height: 1.45),
+              style: TextStyle(
+                  fontSize: 13.5, color: AppColors.muted, height: 1.45),
             ),
             const SizedBox(height: 22),
             PrimaryButton(
@@ -163,10 +250,16 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthScope.of(context).profile;
-    final initials = (user?.name.isNotEmpty ?? false)
-        ? user!.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join()
+    final displayName = _nameController.text.trim();
+    final initials = displayName.isNotEmpty
+        ? displayName
+            .split(' ')
+            .map((e) => e.isNotEmpty ? e[0] : '')
+            .take(2)
+            .join()
         : 'F';
+    final hasPhoto =
+        _selectedAvatarUrl != null && _selectedAvatarUrl!.startsWith('http');
 
     return Scaffold(
       backgroundColor: AppColors.cream,
@@ -206,8 +299,11 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                         ),
                         SizedBox(height: 3),
                         Text(
-                          'Register as a service provider on Baghbani to receive direct hiring requests from land owners.',
-                          style: TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.4),
+                          'Register your profile on Baghbani so land owners can contact you directly.',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.muted,
+                              height: 1.4),
                         ),
                       ],
                     ),
@@ -229,45 +325,68 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
               ),
               child: Column(
                 children: [
-                  // Profile Picture Preview
+                  // Profile Picture Picker
                   Center(
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: AppColors.soft,
-                          child: Text(
-                            initials.toUpperCase(),
-                            style: const TextStyle(
+                    child: GestureDetector(
+                      onTap: _pickAvatarUrl,
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: AppColors.soft,
+                            backgroundImage:
+                                hasPhoto ? NetworkImage(_selectedAvatarUrl!) : null,
+                            child: hasPhoto
+                                ? null
+                                : Text(
+                                    initials.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
+                              shape: BoxShape.circle,
                             ),
+                            child: const Icon(Icons.camera_alt_rounded,
+                                size: 14, color: Colors.white),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 6),
+                  TextButton(
+                    onPressed: _pickAvatarUrl,
+                    child: const Text(
+                      'Set Profile Picture',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
                   // Name
                   TextFormField(
                     controller: _nameController,
+                    onChanged: (_) => setState(() {}),
                     decoration: const InputDecoration(
                       labelText: 'Full Name',
                       hintText: 'e.g. Tariq Mehmood',
-                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.muted),
+                      prefixIcon: Icon(Icons.person_outline_rounded,
+                          color: AppColors.muted),
                     ),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Enter your name' : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Enter your name' : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -277,16 +396,79 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Location / District',
                       hintText: 'e.g. Sahiwal, Punjab',
-                      prefixIcon: Icon(Icons.location_on_outlined, color: AppColors.muted),
+                      prefixIcon: Icon(Icons.location_on_outlined,
+                          color: AppColors.muted),
                     ),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Enter your location' : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Enter your location'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Address
+                  TextFormField(
+                    controller: _addressController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      hintText: 'e.g. Chak 89/6-R, Tehsil & District Sahiwal',
+                      prefixIcon:
+                          Icon(Icons.home_outlined, color: AppColors.muted),
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Enter your address'
+                        : null,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // SECTION 2: Farming Information
+            // SECTION 2: Contact Information
+            _sectionHeader('Contact Information'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      hintText: 'e.g. 0300 1234567',
+                      prefixIcon:
+                          Icon(Icons.phone_outlined, color: AppColors.muted),
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Enter your phone number'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _whatsappController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'WhatsApp Number',
+                      hintText: 'e.g. 0300 1234567',
+                      prefixIcon:
+                          Icon(Icons.chat_outlined, color: AppColors.muted),
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Enter your WhatsApp number'
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // SECTION 3: Farming Information
             _sectionHeader('Farming Information'),
             const SizedBox(height: 12),
             Container(
@@ -309,11 +491,14 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Experience (Years)',
                             hintText: 'e.g. 5',
-                            prefixIcon: Icon(Icons.work_history_outlined, color: AppColors.muted),
+                            prefixIcon: Icon(Icons.work_history_outlined,
+                                color: AppColors.muted),
                           ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) return 'Required';
-                            if (int.tryParse(v.trim()) == null) return 'Numbers only';
+                            if (int.tryParse(v.trim()) == null) {
+                              return 'Numbers only';
+                            }
                             return null;
                           },
                         ),
@@ -325,7 +510,8 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Daily Rate',
                             hintText: 'Rs. 2,000 / day',
-                            prefixIcon: Icon(Icons.payments_outlined, color: AppColors.muted),
+                            prefixIcon: Icon(Icons.payments_outlined,
+                                color: AppColors.muted),
                           ),
                         ),
                       ),
@@ -364,32 +550,31 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                   }),
                   const SizedBox(height: 14),
 
-                  // Available Services Field
+                  // Services Offered Field
                   TextFormField(
                     controller: _servicesController,
                     decoration: const InputDecoration(
-                      labelText: 'Available Services',
+                      labelText: 'Services Offered',
                       hintText: 'e.g. Soil Tillage, Sowing, Laser Leveling',
-                      prefixIcon: Icon(Icons.handyman_outlined, color: AppColors.muted),
+                      prefixIcon:
+                          Icon(Icons.handyman_outlined, color: AppColors.muted),
                     ),
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Enter your services' : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Enter your services'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
-                  // About Me Field
+                  // About Me Field (optional)
                   TextFormField(
                     controller: _aboutMeController,
-                    maxLines: 4,
+                    maxLines: 3,
                     decoration: const InputDecoration(
-                      labelText: 'About Me',
+                      labelText: 'About Me (Optional)',
                       hintText:
-                          'Share your agricultural background, crops managed, machinery operated, or preferred working seasons…',
+                          'Share your agricultural background, crops managed, or machinery operated…',
                       alignLabelWithHint: true,
                     ),
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? 'Please share a brief summary of your background'
-                        : null,
                   ),
                   const SizedBox(height: 18),
 
@@ -401,7 +586,7 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Availability Status',
+                            'Availability',
                             style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
@@ -410,10 +595,12 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _isAvailable ? 'Available for new work' : 'Currently Not Available',
+                            _isAvailable ? 'Available' : 'Not Available',
                             style: TextStyle(
                               fontSize: 12.5,
-                              color: _isAvailable ? AppColors.primary : Colors.orange[800],
+                              color: _isAvailable
+                                  ? AppColors.primary
+                                  : Colors.orange[800],
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -433,7 +620,7 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
 
             // Submit Button
             PrimaryButton(
-              label: 'Submit Profile',
+              label: 'Create Farmer Profile',
               icon: Icons.check_circle_rounded,
               busy: _isSubmitting,
               onPressed: _isSubmitting ? null : _submitProfile,
@@ -445,11 +632,11 @@ class _BecomeFarmerScreenState extends State<BecomeFarmerScreen> {
   }
 
   Widget _sectionHeader(String title) => Text(
-    title,
-    style: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w700,
-      color: AppColors.dark,
-    ),
-  );
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: AppColors.dark,
+        ),
+      );
 }

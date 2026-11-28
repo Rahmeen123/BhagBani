@@ -222,6 +222,15 @@ class ProfileScreen extends StatelessWidget {
                   accent: AppColors.primary,
                   showDivider: true,
                 ),
+                if (!isGuest && (user?.whatsappNumber.isNotEmpty ?? false))
+                  _detailTile(
+                    icon: Icons.chat_outlined,
+                    label: 'WhatsApp number',
+                    value: user!.whatsappNumber,
+                    tint: AppColors.soft,
+                    accent: AppColors.secondary,
+                    showDivider: true,
+                  ),
                 _detailTile(
                   icon: Icons.location_on_outlined,
                   label: 'Location',
@@ -230,6 +239,15 @@ class ProfileScreen extends StatelessWidget {
                   accent: AppColors.communityAccent,
                   showDivider: true,
                 ),
+                if (!isGuest && (user?.address.isNotEmpty ?? false))
+                  _detailTile(
+                    icon: Icons.home_outlined,
+                    label: 'Address',
+                    value: user!.address,
+                    tint: AppColors.farmTint,
+                    accent: AppColors.farmAccent,
+                    showDivider: true,
+                  ),
                 _detailTile(
                   icon: Icons.receipt_long_rounded,
                   label: 'My Plant Orders',

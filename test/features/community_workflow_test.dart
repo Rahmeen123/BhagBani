@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:baghbani/models/contact_information.dart';
 import 'package:baghbani/models/land.dart';
-import 'package:baghbani/models/land_application.dart';
 import 'package:baghbani/models/user_profile.dart';
+import 'package:baghbani/navigation/protected_feature_navigation.dart';
 import 'package:baghbani/providers/auth_scope.dart';
 import 'package:baghbani/screens/auth/login_screen.dart';
-import 'package:baghbani/screens/land/land_applications_screen.dart';
+import 'package:baghbani/screens/farmer/become_farmer_screen.dart';
+import 'package:baghbani/screens/farmer/farmer_listing_screen.dart';
+import 'package:baghbani/screens/farmer/farmer_profile_screen.dart';
 import 'package:baghbani/screens/land/land_marketplace_screens.dart';
 import 'package:baghbani/screens/land/manage_land_listing_screen.dart';
 import 'package:baghbani/screens/land/my_land_listings_screen.dart';
 import 'package:baghbani/screens/land/offer_land_screen.dart';
 import 'package:baghbani/services/auth_service.dart';
+import 'package:baghbani/services/farmer_service.dart';
 import 'package:baghbani/services/land_service.dart';
+import 'package:baghbani/utils/direct_contact_launcher.dart';
 
 class _FakeAuthService extends AuthService {
   UserProfile? _profile;
@@ -55,17 +60,23 @@ class _FakeAuthService extends AuthService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late LandService landService;
+  late FarmerService farmerService;
   late _FakeAuthService fakeAuthService;
   late AuthController authController;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     landService = LandService();
+    farmerService = FarmerService();
     fakeAuthService = _FakeAuthService();
     authController = AuthController(fakeAuthService);
+    DirectContactLauncher.testLauncher = null;
   });
 
-  tearDown(() => authController.dispose());
+  tearDown(() {
+    DirectContactLauncher.testLauncher = null;
+    authController.dispose();
+  });
 
   Widget buildApp(Widget child) {
     return AuthScope(
@@ -91,7 +102,7 @@ void main() {
   });
 
   testWidgets(
-      'My Land Listings displays land card details and Manage Listing button',
+      'My Land Listings displays land card details and Manage Listing without applications',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1000);
     tester.view.devicePixelRatio = 1;
@@ -111,43 +122,27 @@ void main() {
       description: 'Fertile land with direct canal access.',
       images: const [],
       status: 'Available',
+      irrigationAvailable: true,
       createdAt: DateTime.now(),
     );
     await landService.updateLand(land);
-
-    final app = LandApplication(
-      id: 'app_1',
-      landId: 'test_land_1',
-      ownerUserId: 'owner@example.com',
-      farmerUserId: 'farmer1@example.com',
-      farmerName: 'Ahmad Farmer',
-      experience: '7 years',
-      skills: 'Wheat management',
-      location: 'Lahore',
-      message: 'Interested in working on this land.',
-      status: LandApplication.pending,
-      createdAt: DateTime.now(),
-    );
-    await landService.submitApplication(app);
 
     await tester.pumpWidget(
       buildApp(const MyLandListingsScreen(ownerUserId: 'owner@example.com')),
     );
     await tester.pumpAndSettle();
 
-    // Check Land Name, Location, Area, Status, Total Applications
     expect(find.text('Green Valley Farmland'), findsOneWidget);
     expect(find.text('Sheikhupura, Punjab'), findsOneWidget);
     expect(find.text('25 Acres'), findsOneWidget);
     expect(find.text('Available'), findsOneWidget);
-    expect(find.text('Total Applications: 1'), findsOneWidget);
-
-    // Check Manage Listing button
+    expect(find.text('Irrigation Available'), findsOneWidget);
     expect(find.text('Manage Listing'), findsOneWidget);
+    expect(find.textContaining('Total Applications'), findsNothing);
   });
 
   testWidgets(
-      'Manage Listing screen shows Land Details, Edit, Close, Delete, and Applications badge',
+      'Manage Listing screen shows Land Details, Contact Summary, Edit, Close, and Delete',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1;
@@ -168,6 +163,12 @@ void main() {
       images: const [],
       status: 'Available',
       createdAt: DateTime.now(),
+      ownerContact: const ContactInformation(
+        name: 'Test Owner',
+        phoneNumber: '0300 7654321',
+        whatsappNumber: '0300 7654321',
+        address: 'Depalpur Road, Okara',
+      ),
     );
     await landService.updateLand(land);
 
@@ -181,22 +182,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Land Details
     expect(find.text('Sunny Acres Farm'), findsOneWidget);
     expect(find.text('Okara, Punjab'), findsOneWidget);
     expect(find.text('18 Acres'), findsOneWidget);
-    expect(find.text('Potato & Maize'), findsOneWidget);
-    expect(find.text('Tube-well'), findsOneWidget);
-    expect(find.text('Alluvial'), findsOneWidget);
-    expect(find.text('Excellent soil for crop rotation.'), findsOneWidget);
-
-    // Applications badge and controls
-    expect(find.text('Applications'), findsOneWidget);
+    expect(find.text('Published Contact Information'), findsOneWidget);
+    expect(find.text('0300 7654321'), findsWidgets);
+    expect(find.text('Depalpur Road, Okara'), findsOneWidget);
+    expect(find.text('Applications'), findsNothing);
     expect(find.text('Edit Listing'), findsOneWidget);
     expect(find.text('Close Listing'), findsOneWidget);
     expect(find.text('Delete Listing'), findsOneWidget);
 
-    // Toggle close listing
     await tester.tap(find.text('Close Listing'));
     await tester.pumpAndSettle();
 
@@ -205,131 +201,22 @@ void main() {
   });
 
   testWidgets(
-      'Land Applications screen displays only applicants for THIS land and allows Accept/Reject',
+      'Guest can view Find Land & LandDetailScreen and directly Call or WhatsApp owner',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
 
-    final land1 = Land(
-      id: 'land_a',
-      ownerUserId: 'owner@example.com',
-      ownerName: 'Test Owner',
-      landName: 'Land Alpha',
-      location: 'Lahore',
-      area: 10,
-      areaUnit: 'Acres',
-      soilType: 'Loamy',
-      waterSource: 'Canal',
-      preferredCrop: 'Wheat',
-      description: 'Land Alpha desc',
-      images: const [],
-      status: 'Available',
-      createdAt: DateTime.now(),
-    );
-    final land2 = Land(
-      id: 'land_b',
-      ownerUserId: 'owner@example.com',
-      ownerName: 'Test Owner',
-      landName: 'Land Beta',
-      location: 'Multan',
-      area: 20,
-      areaUnit: 'Acres',
-      soilType: 'Sandy',
-      waterSource: 'Canal',
-      preferredCrop: 'Cotton',
-      description: 'Land Beta desc',
-      images: const [],
-      status: 'Available',
-      createdAt: DateTime.now(),
-    );
-    await landService.updateLand(land1);
-    await landService.updateLand(land2);
-
-    final app1 = LandApplication(
-      id: 'app_for_a',
-      landId: 'land_a',
-      ownerUserId: 'owner@example.com',
-      farmerUserId: 'farmer_a@example.com',
-      farmerName: 'Zahid Farmer',
-      experience: '10 years experience',
-      skills: 'Wheat & Rice harvest',
-      location: 'Lahore district',
-      message: 'I have modern equipment for Land Alpha.',
-      status: LandApplication.pending,
-      createdAt: DateTime.now(),
-    );
-    final app2 = LandApplication(
-      id: 'app_for_b',
-      landId: 'land_b',
-      ownerUserId: 'owner@example.com',
-      farmerUserId: 'farmer_b@example.com',
-      farmerName: 'Bilal Farmer',
-      experience: '4 years experience',
-      skills: 'Cotton farming',
-      location: 'Multan district',
-      message: 'Looking for cotton field.',
-      status: LandApplication.pending,
-      createdAt: DateTime.now(),
-    );
-    await landService.submitApplication(app1);
-    await landService.submitApplication(app2);
-
-    await tester.pumpWidget(
-      buildApp(
-        LandApplicationsScreen(
-          land: land1,
-          ownerUserId: 'owner@example.com',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Check that ONLY applicant for land1 appears, not land2
-    expect(find.text('Zahid Farmer'), findsOneWidget);
-    expect(find.text('Bilal Farmer'), findsNothing);
-
-    // Card contains Farmer Name, Experience, Skills, Location, Message, Buttons
-    expect(find.text('10 years experience'), findsOneWidget);
-    expect(find.text('Wheat & Rice harvest'), findsOneWidget);
-    expect(find.text('Lahore district'), findsOneWidget);
-    expect(find.text('I have modern equipment for Land Alpha.'), findsOneWidget);
-    expect(find.text('View Profile'), findsOneWidget);
-    expect(find.text('Accept'), findsOneWidget);
-    expect(find.text('Reject'), findsOneWidget);
-
-    // Accept application
-    await tester.tap(find.text('Accept'));
-    await tester.pumpAndSettle();
-
-    // Status updated
-    expect(find.text('Accepted'), findsAtLeastNWidgets(1));
-    final updated =
-        (await landService.getApplicationsByFarmer('farmer_a@example.com'))
-            .first;
-    expect(updated.status, LandApplication.accepted);
-  });
-
-  testWidgets(
-      'Guest clicking Apply in LandDetailScreen is gated by Login, and after login continues to application form',
-      (tester) async {
-    tester.view.physicalSize = const Size(800, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-
-    fakeAuthService.seed(
-      const UserProfile(
-        name: 'Registered Farmer',
-        email: 'regfarmer@example.com',
-        phone: '03001234567',
-        location: 'Sargodha',
-      ),
-      'secret123',
-    );
     await authController.continueAsGuest();
 
+    final launchedUris = <Uri>[];
+    DirectContactLauncher.testLauncher = (uri) async {
+      launchedUris.add(uri);
+      return true;
+    };
+
     final land = Land(
-      id: 'market_1',
+      id: 'market_direct_1',
       ownerUserId: 'owner_1',
       ownerName: 'Chaudhry Riaz',
       landName: 'Canal-side wheat and rice farm',
@@ -342,7 +229,14 @@ void main() {
       description: 'Fertile land.',
       images: const [],
       status: 'Available',
+      irrigationAvailable: true,
       createdAt: DateTime.now(),
+      ownerContact: const ContactInformation(
+        name: 'Chaudhry Riaz',
+        phoneNumber: '0300 1234567',
+        whatsappNumber: '0301 9876543',
+        address: 'Chak 45, Sheikhupura Road',
+      ),
     );
 
     await tester.pumpWidget(
@@ -350,91 +244,149 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Guest taps Apply Now
-    await tester.tap(find.text('Apply Now'));
+    expect(find.text('Chaudhry Riaz'), findsOneWidget);
+    expect(find.text('0300 1234567'), findsOneWidget);
+    expect(find.text('0301 9876543'), findsOneWidget);
+    expect(find.text('Chak 45, Sheikhupura Road'), findsOneWidget);
+    expect(find.text('Apply Now'), findsNothing);
+    expect(find.text('Request Contact'), findsNothing);
+
+    await tester.ensureVisible(find.text('Call Owner'));
+    await tester.tap(find.text('Call Owner'));
     await tester.pumpAndSettle();
 
-    // Should open LoginScreen (guest cannot apply)
-    expect(find.byType(LoginScreen), findsOneWidget);
-
-    // User logs in
-    final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'regfarmer@example.com');
-    await tester.enterText(fields.at(1), 'secret123');
-    await tester.tap(find.text('Log in'));
+    await tester.ensureVisible(find.text('WhatsApp Owner'));
+    await tester.tap(find.text('WhatsApp Owner'));
     await tester.pumpAndSettle();
 
-    // Does NOT redirect to dashboard, continues directly to ApplyLandScreen!
-    expect(find.byType(ApplyLandScreen), findsOneWidget);
-    expect(find.text('Apply for Canal-side wheat and rice farm'), findsOneWidget);
-    expect(find.text('Good morning,'), findsNothing);
-
-    // Fill application form
-    final formInputs = find.byType(TextFormField);
-    await tester.enterText(formInputs.at(0), 'Hello, I am an experienced farmer.');
-    await tester.enterText(formInputs.at(1), 'Expert in rice and wheat.');
-    await tester.enterText(formInputs.at(2), '8 years of cultivation.');
-
-    // Submit Application
-    await tester.tap(find.text('Submit Application'));
-    await tester.pumpAndSettle();
-
-    // Submitting redirects directly to My Applications (MyAppliedLandsScreen)!
-    expect(find.byType(MyAppliedLandsScreen), findsOneWidget);
-    expect(find.text('Canal-side wheat and rice farm'), findsOneWidget);
-    expect(find.text('Owner: Chaudhry Riaz'), findsOneWidget);
-    expect(find.text('Pending'), findsOneWidget);
+    expect(launchedUris, hasLength(2));
+    expect(launchedUris[0].scheme, 'tel');
+    expect(launchedUris[0].path, '03001234567');
+    expect(launchedUris[1].host, 'wa.me');
+    expect(launchedUris[1].path, '/923019876543');
   });
 
   testWidgets(
-      'My Applications displays Land Name, Owner, and Status (Pending, Accepted, Rejected)',
+      'BecomeFarmerScreen creates farmer profile visible in Hire Farmer with direct Call & WhatsApp',
       (tester) async {
-    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.physicalSize = const Size(800, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
 
-    final land = Land(
-      id: 'demo_land_app',
-      ownerUserId: 'owner_demo',
-      ownerName: 'Mian Aslam',
-      landName: 'Citrus orchard plot',
-      location: 'Khanewal',
-      area: 15,
-      areaUnit: 'Acres',
-      soilType: 'Sandy loam',
-      waterSource: 'Drip',
-      preferredCrop: 'Citrus',
-      description: 'Orchard plot',
-      images: const [],
-      status: 'Available',
-      createdAt: DateTime.now(),
-    );
-    await landService.updateLand(land);
+    authController
+      ..profile = const UserProfile(
+        name: 'Bilal Ahmad',
+        email: 'bilal@example.com',
+        phone: '0305 1112233',
+        whatsappNumber: '0305 1112233',
+        location: 'Multan, Punjab',
+        address: 'Bosan Road, Multan',
+      )
+      ..isAuthenticated = true;
 
-    final application = LandApplication(
-      id: 'app_citrus',
-      landId: 'demo_land_app',
-      ownerUserId: 'owner_demo',
-      farmerUserId: 'farmer_citrus@example.com',
-      farmerName: 'Citrus Grower',
-      experience: '5 years',
-      skills: 'Citrus management',
-      location: 'Khanewal',
-      message: 'Ready to manage orchard.',
-      status: LandApplication.accepted,
-      createdAt: DateTime.now(),
+    await tester.pumpWidget(buildApp(const BecomeFarmerScreen()));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextFormField);
+    // Field index 5 is Experience (Years): 0=Name, 1=Location, 2=Address, 3=Phone, 4=WhatsApp, 5=Exp
+    await tester.enterText(fields.at(5), '7');
+
+    await tester.ensureVisible(find.text('Create Farmer Profile'));
+    await tester.tap(find.text('Create Farmer Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile Registered!'), findsOneWidget);
+
+    final farmers = await farmerService.getFarmers();
+    final created = farmers.firstWhere((f) => f.userId == 'bilal@example.com');
+    expect(created.name, 'Bilal Ahmad');
+    expect(created.phone, '0305 1112233');
+    expect(created.whatsapp, '0305 1112233');
+    expect(created.address, 'Bosan Road, Multan');
+    expect(created.experienceYears, 7);
+
+    // Verify FarmerListingScreen & FarmerProfileScreen show direct contact
+    final launchedUris = <Uri>[];
+    DirectContactLauncher.testLauncher = (uri) async {
+      launchedUris.add(uri);
+      return true;
+    };
+
+    await tester.pumpWidget(buildApp(const FarmerListingScreen()));
+    await tester.pumpAndSettle();
+    expect(find.text('Bilal Ahmad'), findsOneWidget);
+
+    await tester.pumpWidget(buildApp(FarmerProfileScreen(farmer: created)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Call Farmer'), findsOneWidget);
+    expect(find.text('WhatsApp Farmer'), findsOneWidget);
+    expect(find.text('Send Hiring Request'), findsNothing);
+    expect(find.text('Request Contact'), findsNothing);
+
+    await tester.ensureVisible(find.text('Call Farmer'));
+    await tester.tap(find.text('Call Farmer'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('WhatsApp Farmer'));
+    await tester.tap(find.text('WhatsApp Farmer'));
+    await tester.pumpAndSettle();
+
+    expect(launchedUris, hasLength(2));
+    expect(launchedUris[0].scheme, 'tel');
+    expect(launchedUris[1].host, 'wa.me');
+  });
+
+  testWidgets(
+      'Guest clicking Become a Farmer / Offer a Land is gated by Login and continues to action without dashboard redirect',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    fakeAuthService.seed(
+      const UserProfile(
+        name: 'Registered Grower',
+        email: 'grower@example.com',
+        phone: '03001234567',
+        location: 'Sargodha',
+      ),
+      'secret123',
     );
-    await landService.submitApplication(application);
+    await authController.continueAsGuest();
 
     await tester.pumpWidget(
       buildApp(
-        const MyAppliedLandsScreen(farmerUserId: 'farmer_citrus@example.com'),
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => ProtectedFeatureNavigation.open(
+                  context,
+                  destination: (_) => const BecomeFarmerScreen(),
+                  loginScreenBuilder: (dest) => LoginScreen(onAuthenticated: dest),
+                ),
+                child: const Text('Become a Farmer'),
+              ),
+            ),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Citrus orchard plot'), findsOneWidget);
-    expect(find.text('Owner: Mian Aslam'), findsOneWidget);
-    expect(find.text('Accepted'), findsOneWidget);
+    await tester.tap(find.text('Become a Farmer'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'grower@example.com');
+    await tester.enterText(fields.at(1), 'secret123');
+    await tester.tap(find.text('Log in'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BecomeFarmerScreen), findsOneWidget);
+    expect(find.text('Good morning,'), findsNothing);
   });
 }

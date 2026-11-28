@@ -120,8 +120,8 @@ class HireFarmerLandingScreen extends StatelessWidget {
 
             _valuePropTile(
               icon: Icons.chat_bubble_outline_rounded,
-              title: 'Direct Hiring Requests',
-              description: 'Send custom requirements directly without middlemen or hidden commission.',
+              title: 'Direct Contact',
+              description: 'Call or WhatsApp farmers directly without middlemen or hidden commission.',
               tint: AppColors.communityTint,
               accent: AppColors.communityAccent,
             ),
