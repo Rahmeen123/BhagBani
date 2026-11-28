@@ -1,3 +1,5 @@
+import 'land_coordinate.dart';
+
 class LandOffer {
   const LandOffer({
     required this.id,
@@ -12,6 +14,9 @@ class LandOffer {
     required this.createdAt,
     this.soilType = 'Not specified',
     this.preferredCrop = 'Mixed crops',
+    this.polygonCoordinates = const [],
+    this.centerLocation,
+    this.perimeterMeters,
   });
 
   final String id;
@@ -26,6 +31,9 @@ class LandOffer {
   final DateTime createdAt;
   final String soilType;
   final String preferredCrop;
+  final List<LandCoordinate> polygonCoordinates;
+  final LandCoordinate? centerLocation;
+  final double? perimeterMeters;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -40,6 +48,10 @@ class LandOffer {
         'createdAt': createdAt.toIso8601String(),
         'soilType': soilType,
         'preferredCrop': preferredCrop,
+        'polygonCoordinates':
+            polygonCoordinates.map((point) => point.toJson()).toList(),
+        if (centerLocation != null) 'centerLocation': centerLocation!.toJson(),
+        if (perimeterMeters != null) 'perimeterMeters': perimeterMeters,
       };
 
   factory LandOffer.fromJson(Map<String, dynamic> json) => LandOffer(
@@ -56,5 +68,16 @@ class LandOffer {
             DateTime.now(),
         soilType: json['soilType'] as String? ?? 'Not specified',
         preferredCrop: json['preferredCrop'] as String? ?? 'Mixed crops',
+        polygonCoordinates:
+            (json['polygonCoordinates'] as List<dynamic>? ?? const [])
+                .whereType<Map>()
+                .map((item) =>
+                    LandCoordinate.fromJson(Map<String, dynamic>.from(item)))
+                .toList(growable: false),
+        centerLocation: json['centerLocation'] is Map
+            ? LandCoordinate.fromJson(
+                Map<String, dynamic>.from(json['centerLocation'] as Map))
+            : null,
+        perimeterMeters: (json['perimeterMeters'] as num?)?.toDouble(),
       );
 }

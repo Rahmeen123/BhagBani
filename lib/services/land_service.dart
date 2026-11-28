@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/land.dart';
 import '../models/land_application.dart';
+import '../models/land_coordinate.dart';
 import '../models/land_offer.dart';
+import '../utils/land_geometry.dart';
 import 'demo_notification_service.dart';
 
 class LandService {
@@ -41,161 +43,190 @@ class LandService {
     ),
   ];
 
+  static List<LandCoordinate> _rectPolygon(
+    double lat,
+    double lng,
+    double dLat,
+    double dLng,
+  ) =>
+      [
+        LandCoordinate(latitude: lat - dLat, longitude: lng - dLng),
+        LandCoordinate(latitude: lat + dLat, longitude: lng - dLng),
+        LandCoordinate(latitude: lat + dLat * 0.9, longitude: lng + dLng),
+        LandCoordinate(latitude: lat - dLat * 0.95, longitude: lng + dLng * 0.85),
+      ];
+
   static final List<Land> _sampleLands = [
-    Land(
+    _buildSampleLand(
       id: 'market_1',
       ownerUserId: 'owner_1',
       ownerName: 'Chaudhry Riaz',
       landName: 'Canal-side wheat and rice farm',
       location: 'Sheikhupura, Punjab',
       area: 25,
-      areaUnit: 'Acres',
       soilType: 'Alluvial',
       waterSource: 'Canal + solar tube-well',
       preferredCrop: 'Wheat and rice',
       description:
           'Fertile, laser-levelled land with reliable irrigation and access to the main road.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 6, 10),
+      polygon: _rectPolygon(31.7167, 73.9850, 0.0014, 0.0018),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_2',
       ownerUserId: 'owner_2',
       ownerName: 'Mian Aslam',
       landName: 'Citrus orchard and crop land',
       location: 'Khanewal, Punjab',
       area: 15,
-      areaUnit: 'Acres',
       soilType: 'Sandy loam',
       waterSource: 'Drip irrigation',
       preferredCrop: 'Citrus and vegetables',
       description:
           'Young citrus trees with additional acreage available for seasonal crops.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 6, 7),
+      polygon: _rectPolygon(30.3017, 71.9321, 0.0011, 0.0014),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_3',
       ownerUserId: 'owner_3',
       ownerName: 'Ayesha Malik',
       landName: 'Vegetable growing opportunity',
       location: 'Multan, Punjab',
       area: 8,
-      areaUnit: 'Acres',
       soilType: 'Loamy',
       waterSource: 'Tube-well',
       preferredCrop: 'Cotton and vegetables',
       description:
           'Open, level fields near the city with a working tube-well and storage shed.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 6, 5),
+      polygon: _rectPolygon(30.1575, 71.5249, 0.0008, 0.0010),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_4',
       ownerUserId: 'owner_4',
       ownerName: 'Naveed Ahmed',
       landName: 'Organic vegetable fields',
       location: 'Lahore, Punjab',
       area: 4.5,
-      areaUnit: 'Acres',
       soilType: 'Clay loam',
       waterSource: 'Canal water',
       preferredCrop: 'Seasonal vegetables',
       description:
           'Small farm suited to intensive vegetable cultivation and organic practices.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 6, 2),
+      polygon: _rectPolygon(31.4250, 74.2280, 0.0006, 0.0008),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_5',
       ownerUserId: 'owner_5',
       ownerName: 'Sana Iqbal',
       landName: 'Cotton and maize acreage',
       location: 'Bahawalpur, Punjab',
       area: 32,
-      areaUnit: 'Acres',
       soilType: 'Sandy',
       waterSource: 'Canal + tube-well',
       preferredCrop: 'Cotton and maize',
       description:
           'Spacious irrigated fields with farm access and a long-term management option.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 5, 28),
+      polygon: _rectPolygon(29.3956, 71.6836, 0.0016, 0.0020),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_6',
       ownerUserId: 'owner_6',
       ownerName: 'Bilal Hussain',
       landName: 'Rice cultivation land',
       location: 'Gujranwala, Punjab',
       area: 12,
-      areaUnit: 'Acres',
       soilType: 'Clay',
       waterSource: 'Canal water',
       preferredCrop: 'Rice',
       description:
           'Established paddy fields with dependable water access during the growing season.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 5, 24),
+      polygon: _rectPolygon(32.1877, 74.1945, 0.0010, 0.0012),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_7',
       ownerUserId: 'owner_7',
       ownerName: 'Imran Shah',
       landName: 'Orchard management plot',
       location: 'Sargodha, Punjab',
       area: 10,
-      areaUnit: 'Acres',
       soilType: 'Sandy loam',
       waterSource: 'Drip irrigation',
       preferredCrop: 'Citrus',
       description:
           'Established citrus orchard seeking an experienced grower for seasonal care.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 5, 19),
+      polygon: _rectPolygon(32.0740, 72.6711, 0.0009, 0.0011),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_8',
       ownerUserId: 'owner_8',
       ownerName: 'Fatima Noor',
       landName: 'Mixed crop farm near the canal',
       location: 'Okara, Punjab',
       area: 18,
-      areaUnit: 'Acres',
       soilType: 'Alluvial',
       waterSource: 'Canal water',
       preferredCrop: 'Potato and maize',
       description:
           'Productive land with crop rotation history and easy access for farm machinery.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 5, 15),
+      polygon: _rectPolygon(30.8138, 73.4534, 0.0012, 0.0015),
     ),
-    Land(
+    _buildSampleLand(
       id: 'market_9',
       ownerUserId: 'owner_9',
       ownerName: 'Zahid Mahmood',
       landName: 'Rain-fed farming opportunity',
       location: 'Chakwal, Punjab',
       area: 22,
-      areaUnit: 'Acres',
       soilType: 'Loamy',
       waterSource: 'Rain-fed',
       preferredCrop: 'Groundnut and millet',
       description:
           'Open fields suited to drought-tolerant crops, with road access and boundary fencing.',
-      images: const [_sampleLandImage],
-      status: 'Available',
       createdAt: DateTime(2026, 5, 11),
+      polygon: _rectPolygon(32.9328, 72.8630, 0.0013, 0.0016),
     ),
   ];
+
+  static Land _buildSampleLand({
+    required String id,
+    required String ownerUserId,
+    required String ownerName,
+    required String landName,
+    required String location,
+    required double area,
+    required String soilType,
+    required String waterSource,
+    required String preferredCrop,
+    required String description,
+    required DateTime createdAt,
+    required List<LandCoordinate> polygon,
+  }) =>
+      Land(
+        id: id,
+        ownerUserId: ownerUserId,
+        ownerName: ownerName,
+        landName: landName,
+        location: location,
+        area: area,
+        areaUnit: 'Acres',
+        soilType: soilType,
+        waterSource: waterSource,
+        preferredCrop: preferredCrop,
+        description: description,
+        images: const [],
+        status: 'Available',
+        createdAt: createdAt,
+        polygonCoordinates: polygon,
+        centerLocation: LandGeometry.centerOf(polygon),
+        perimeterMeters: LandGeometry.perimeterMeters(polygon),
+      );
 
   Future<List<LandOffer>> getLandOffers() async {
     final prefs = await SharedPreferences.getInstance();
@@ -207,6 +238,39 @@ class LandService {
     return [...customOffers, ..._sampleOffers];
   }
 
+  Land _landFromOffer(LandOffer offer) {
+    final hasBoundary = offer.polygonCoordinates.length >= 3;
+    final parsedArea =
+        double.tryParse(offer.acreage.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+    final resolvedArea =
+        hasBoundary && parsedArea <= 0
+            ? LandGeometry.areaAcres(offer.polygonCoordinates)
+            : parsedArea;
+    return Land(
+      id: offer.id,
+      ownerUserId: offer.userId,
+      ownerName: offer.ownerName,
+      landName: offer.title,
+      location: offer.location,
+      area: resolvedArea,
+      areaUnit: 'Acres',
+      soilType: offer.soilType,
+      waterSource: offer.waterSource,
+      preferredCrop: offer.preferredCrop,
+      description: offer.description,
+      images: hasBoundary ? const [] : const [_sampleLandImage],
+      status: 'Available',
+      createdAt: offer.createdAt,
+      polygonCoordinates: offer.polygonCoordinates,
+      centerLocation: offer.centerLocation ??
+          LandGeometry.centerOf(offer.polygonCoordinates),
+      perimeterMeters: offer.perimeterMeters ??
+          (hasBoundary
+              ? LandGeometry.perimeterMeters(offer.polygonCoordinates)
+              : null),
+    );
+  }
+
   Future<void> submitLandOffer(LandOffer offer) async {
     final prefs = await SharedPreferences.getInstance();
     final customRaw = prefs.getStringList(_landOffersKey) ?? [];
@@ -215,27 +279,7 @@ class LandService {
 
     final lands = await _readLands(prefs);
     if (!lands.any((land) => land.id == offer.id)) {
-      lands.insert(
-        0,
-        Land(
-          id: offer.id,
-          ownerUserId: offer.userId,
-          ownerName: offer.ownerName,
-          landName: offer.title,
-          location: offer.location,
-          area: double.tryParse(
-                  offer.acreage.replaceAll(RegExp(r'[^0-9.]'), '')) ??
-              0,
-          areaUnit: 'Acres',
-          soilType: offer.soilType,
-          waterSource: offer.waterSource,
-          preferredCrop: offer.preferredCrop,
-          description: offer.description,
-          images: const [_sampleLandImage],
-          status: 'Available',
-          createdAt: offer.createdAt,
-        ),
-      );
+      lands.insert(0, _landFromOffer(offer));
       await prefs.setStringList(
         _landsKey,
         lands.map((land) => jsonEncode(land.toJson())).toList(),
@@ -251,26 +295,7 @@ class LandService {
     for (final raw in customRaw) {
       final offer = LandOffer.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       if (knownIds.add(offer.id)) {
-        lands.add(
-          Land(
-            id: offer.id,
-            ownerUserId: offer.userId,
-            ownerName: offer.ownerName,
-            landName: offer.title,
-            location: offer.location,
-            area: double.tryParse(
-                    offer.acreage.replaceAll(RegExp(r'[^0-9.]'), '')) ??
-                0,
-            areaUnit: 'Acres',
-            soilType: offer.soilType,
-            waterSource: offer.waterSource,
-            preferredCrop: offer.preferredCrop,
-            description: offer.description,
-            images: const [_sampleLandImage],
-            status: 'Available',
-            createdAt: offer.createdAt,
-          ),
-        );
+        lands.add(_landFromOffer(offer));
       }
     }
     return [...lands, ..._sampleLands];

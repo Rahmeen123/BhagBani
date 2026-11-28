@@ -1,3 +1,5 @@
+import 'land_coordinate.dart';
+
 class Land {
   const Land({
     required this.id,
@@ -14,6 +16,9 @@ class Land {
     required this.status,
     required this.createdAt,
     this.ownerName = 'Land Owner',
+    this.polygonCoordinates = const [],
+    this.centerLocation,
+    this.perimeterMeters,
   });
 
   final String id;
@@ -30,6 +35,11 @@ class Land {
   final String status;
   final DateTime createdAt;
   final String ownerName;
+  final List<LandCoordinate> polygonCoordinates;
+  final LandCoordinate? centerLocation;
+  final double? perimeterMeters;
+
+  bool get hasBoundary => polygonCoordinates.length >= 3;
 
   Land copyWith({
     String? landName,
@@ -42,6 +52,9 @@ class Land {
     String? description,
     List<String>? images,
     String? status,
+    List<LandCoordinate>? polygonCoordinates,
+    LandCoordinate? centerLocation,
+    double? perimeterMeters,
   }) =>
       Land(
         id: id,
@@ -58,6 +71,9 @@ class Land {
         status: status ?? this.status,
         createdAt: createdAt,
         ownerName: ownerName,
+        polygonCoordinates: polygonCoordinates ?? this.polygonCoordinates,
+        centerLocation: centerLocation ?? this.centerLocation,
+        perimeterMeters: perimeterMeters ?? this.perimeterMeters,
       );
 
   Map<String, dynamic> toJson() => {
@@ -75,6 +91,10 @@ class Land {
         'status': status,
         'createdAt': createdAt.toIso8601String(),
         'ownerName': ownerName,
+        'polygonCoordinates':
+            polygonCoordinates.map((point) => point.toJson()).toList(),
+        if (centerLocation != null) 'centerLocation': centerLocation!.toJson(),
+        if (perimeterMeters != null) 'perimeterMeters': perimeterMeters,
       };
 
   factory Land.fromJson(Map<String, dynamic> json) => Land(
@@ -93,5 +113,16 @@ class Land {
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
             DateTime.now(),
         ownerName: json['ownerName'] as String? ?? 'Land Owner',
+        polygonCoordinates:
+            (json['polygonCoordinates'] as List<dynamic>? ?? const [])
+                .whereType<Map>()
+                .map((item) =>
+                    LandCoordinate.fromJson(Map<String, dynamic>.from(item)))
+                .toList(growable: false),
+        centerLocation: json['centerLocation'] is Map
+            ? LandCoordinate.fromJson(
+                Map<String, dynamic>.from(json['centerLocation'] as Map))
+            : null,
+        perimeterMeters: (json['perimeterMeters'] as num?)?.toDouble(),
       );
 }

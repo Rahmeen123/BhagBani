@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../models/land_offer.dart';
 import '../../models/land.dart';
 import '../../providers/auth_scope.dart';
-import '../../services/land_service.dart';
 import '../../widgets/primary_button.dart';
 import '../farmer/widgets/community_login_gate.dart';
 import 'my_land_listings_screen.dart';
+import 'select_farm_boundary_screen.dart';
 
 class OfferLandScreen extends StatefulWidget {
   const OfferLandScreen({super.key, this.land});
@@ -25,11 +24,9 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
   final _soilTypeController = TextEditingController();
   final _cropController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _landService = LandService();
 
   String _selectedWaterSource = 'Canal Water';
   String _selectedPartnership = 'Crop Sharing';
-  bool _isSubmitting = false;
   bool _didInitialize = false;
 
   final List<String> _waterSources = [
@@ -82,121 +79,30 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
     super.dispose();
   }
 
-  Future<void> _submitLandOffer() async {
+  Future<void> _continueToBoundarySelection() async {
     final user = AuthScope.of(context).profile;
     if (user == null || user.isGuest) {
       await requireCommunityLogin(context, actionName: 'offer your land');
       return;
     }
     if (!_form.currentState!.validate()) return;
-    setState(() => _isSubmitting = true);
 
-    try {
-      if (widget.land case final land?) {
-        await _landService.updateLand(
-          land.copyWith(
-            landName: _titleController.text.trim(),
-            location: _locationController.text.trim(),
-            area: double.parse(_acreageController.text.trim()),
-            areaUnit: 'Acres',
-            soilType: _soilTypeController.text.trim(),
-            waterSource: _selectedWaterSource,
-            preferredCrop: _cropController.text.trim(),
-            description: _descriptionController.text.trim(),
-          ),
-        );
-      } else {
-        final offer = LandOffer(
-          id: 'land_${DateTime.now().millisecondsSinceEpoch}',
-          userId: user.email,
-          ownerName: user.name,
-          title: _titleController.text.trim(),
-          location: _locationController.text.trim(),
-          acreage: '${_acreageController.text.trim()} Acres',
-          waterSource: _selectedWaterSource,
-          partnershipType: _selectedPartnership,
-          description: _descriptionController.text.trim(),
-          createdAt: DateTime.now(),
-          soilType: _soilTypeController.text.trim(),
-          preferredCrop: _cropController.text.trim(),
-        );
-        await _landService.submitLandOffer(offer);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save land listing: $error')),
-      );
-      return;
-    }
+    final draft = OfferLandDraft(
+      title: _titleController.text.trim(),
+      location: _locationController.text.trim(),
+      estimatedAreaAcres: double.parse(_acreageController.text.trim()),
+      soilType: _soilTypeController.text.trim(),
+      preferredCrop: _cropController.text.trim(),
+      waterSource: _selectedWaterSource,
+      partnershipType: _selectedPartnership,
+      description: _descriptionController.text.trim(),
+      existingLand: widget.land,
+    );
 
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cream,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: AppColors.farmTint,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.landscape_rounded,
-                  color: AppColors.farmAccent, size: 36),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              widget.land == null
-                  ? 'Land Listed Successfully!'
-                  : 'Listing Updated Successfully!',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppColors.dark,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.land == null
-                  ? 'Your land requirement has been published in the Baghbani Community. Suitable farmers in your district will be able to review and connect.'
-                  : 'Your land listing details have been updated.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 13.5, color: AppColors.muted, height: 1.45),
-            ),
-            const SizedBox(height: 22),
-            PrimaryButton(
-              label: 'Done',
-              onPressed: () {
-                Navigator.pop(context); // close dialog
-                if (widget.land != null) {
-                  Navigator.pop(context);
-                } else {
-                  final ownerUserId =
-                      AuthScope.of(context).profile?.email ?? '';
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => MyLandListingsScreen(
-                        ownerUserId: ownerUserId,
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => SelectFarmBoundaryScreen(draft: draft),
       ),
     );
   }
@@ -408,14 +314,11 @@ class _OfferLandScreenState extends State<OfferLandScreen> {
             ),
             const SizedBox(height: 28),
 
-            // Submit Button
+            // Next Step Button -> Select Farm Boundary
             PrimaryButton(
-              label: widget.land == null
-                  ? 'Submit Land Requirement'
-                  : 'Save Changes',
-              icon: Icons.check_circle_rounded,
-              busy: _isSubmitting,
-              onPressed: _isSubmitting ? null : _submitLandOffer,
+              label: 'Select Farm Boundary',
+              icon: Icons.map_outlined,
+              onPressed: _continueToBoundarySelection,
             ),
           ],
         ),

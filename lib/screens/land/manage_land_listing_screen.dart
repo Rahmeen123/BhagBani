@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/land.dart';
 import '../../services/land_service.dart';
-import '../../widgets/primary_button.dart';
+import '../../utils/land_geometry.dart';
+import '../../widgets/land_boundary_map.dart';
 import 'land_applications_screen.dart';
 import 'offer_land_screen.dart';
 
@@ -166,19 +168,29 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
         children: [
-          // Land Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: image != null && image.startsWith('http')
-                ? Image.network(
-                    image,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholderImage(),
-                  )
-                : _placeholderImage(),
-          ),
+          // Farm Boundary Map or fallback placeholder
+          if (_land.hasBoundary || _land.centerLocation != null)
+            LandBoundaryMap(
+              points: _land.polygonCoordinates,
+              centerPoint: _land.centerLocation,
+              editable: false,
+              initialMapType: MapType.satellite,
+              height: 220,
+              borderRadius: 22,
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: image != null && image.startsWith('http')
+                  ? Image.network(
+                      image,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholderImage(),
+                    )
+                  : _placeholderImage(),
+            ),
           const SizedBox(height: 18),
 
           // Land Name and Status
@@ -234,6 +246,12 @@ class _ManageLandListingScreenState extends State<ManageLandListingScreen> {
                 text:
                     '${_land.area % 1 == 0 ? _land.area.toInt() : _land.area} ${_land.areaUnit}',
               ),
+              if (_land.perimeterMeters != null && _land.perimeterMeters! > 0)
+                _infoChip(
+                  icon: Icons.straighten_rounded,
+                  text:
+                      'Perimeter: ${LandGeometry.formatPerimeter(_land.perimeterMeters!)}',
+                ),
               _infoChip(
                 icon: Icons.grass_rounded,
                 text: _land.preferredCrop,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/farmer.dart';
 import '../../models/land.dart';
@@ -6,6 +7,8 @@ import '../../models/land_application.dart';
 import '../../providers/auth_scope.dart';
 import '../../services/farmer_service.dart';
 import '../../services/land_service.dart';
+import '../../utils/land_geometry.dart';
+import '../../widgets/land_boundary_map.dart';
 import '../../widgets/primary_button.dart';
 import 'applicant_profile_screen.dart';
 import '../farmer/widgets/community_login_gate.dart';
@@ -268,10 +271,12 @@ class LandDetailScreen extends StatelessWidget {
     super.key,
     required this.land,
     required this.service,
+    this.mapBuilder,
   });
 
   final Land land;
   final LandService service;
+  final BoundaryMapBuilder? mapBuilder;
 
   void _apply(BuildContext context) {
     final auth = AuthScope.of(context);
@@ -320,7 +325,18 @@ class LandDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          _LandGallery(land: land, height: 230),
+          if (land.hasBoundary || land.centerLocation != null)
+            LandBoundaryMap(
+              points: land.polygonCoordinates,
+              centerPoint: land.centerLocation,
+              editable: false,
+              initialMapType: MapType.satellite,
+              height: 260,
+              borderRadius: 22,
+              mapBuilder: mapBuilder,
+            )
+          else
+            _LandGallery(land: land, height: 230),
           const SizedBox(height: 18),
           Text(
             land.landName,
@@ -342,6 +358,12 @@ class LandDetailScreen extends StatelessWidget {
                 icon: Icons.square_foot_rounded,
                 text: _areaText(land),
               ),
+              if (land.perimeterMeters != null && land.perimeterMeters! > 0)
+                _InfoChip(
+                  icon: Icons.straighten_rounded,
+                  text:
+                      'Perimeter: ${LandGeometry.formatPerimeter(land.perimeterMeters!)}',
+                ),
               _InfoChip(icon: Icons.grass_rounded, text: land.preferredCrop),
               _InfoChip(
                   icon: Icons.water_drop_outlined, text: land.waterSource),
@@ -757,7 +779,14 @@ class _LandCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LandImage(land: land, height: 174),
+          if (land.hasBoundary)
+            LandBoundaryPreview(
+              points: land.polygonCoordinates,
+              height: 174,
+              badgeText: '${_areaText(land)} • Farm Boundary',
+            )
+          else
+            _LandImage(land: land, height: 174),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
